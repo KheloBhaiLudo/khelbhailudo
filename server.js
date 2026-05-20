@@ -23,9 +23,11 @@ const pool = require('./db');
 // Agar aapke 'db.js' se client export hota hai toh ye line use automatic use karegi bina re-declaration error ke.
 const supabaseClientInstance = pool.supabase || global.supabase;
 
-// CORS Multi-Origin configuration layer (Cleaned up for khelbhailudo.com)
+
+// CORS Multi-Origin configuration layer (Cleaned up for khelbhailudo.com & New Github Profile)
 const allowedOrigins = [
-    'https://khelobhailudo.github.io/khelbhailudo/',
+    'https://khelobhailudo.github.io',                  // ✨ NAYA CLIENT FRONTEND LINK (Strictly Added)
+    'https://khelobhailudo.github.io/khelbhailudo/',    // Purana sub-folder mapping layout
     'https://khelbhailudo.com',
     'https://www.khelbhailudo.com'
 ];
@@ -45,8 +47,7 @@ app.use(cors({
 }));
 
 // Dynamic Memory Cache Allocation for OTP tracking
-const otpStore = {}; 
-
+const otpStore = {};
 // --- DATABASE TABLES INITIALIZATION ---
 const initDB = async () => {
     try {
