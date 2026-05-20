@@ -91,6 +91,9 @@
         <div class="menu-item" onclick="openSection('profileSection')"><i class="fas fa-user-circle"></i> My Profile</div>
         <div class="menu-item" onclick="openSection('gameHistorySection')"><i class="fas fa-history"></i> Game History</div>
         <div class="menu-item" onclick="openSection('transSection')"><i class="fas fa-wallet"></i> Wallet Transactions</div>
+        <div class="menu-item" onclick="location.href='winning.His.html'"><i class="fas fa-wallet"></i> Winning History</div>
+        <div class="menu-item" onclick="location.href='notifications.html'"><i class="fas fa-bell"></i> Notifications</div>
+        <div class="menu-item" onclick="openSection('policy')"><i class="fas fa-file-contract"></i> All Policy</div>
         <div class="menu-item" style="color: #ef4444;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
     </div>
 
@@ -123,12 +126,12 @@
         <h3 style="margin-left: 15px; font-size: 16px;">Play & Win</h3>
         <div class="game-grid">
             <div class="game-card" onclick="location.href='ludo.html'">
-                <img src="https://www.shutterstock.com/image-vector/ludo-board-game-top-view-600nw-1934371583.jpg" class="game-img">
+                <img src="https://wallpaperaccess.com/full/7172895.jpg" class="game-img">
                 <button class="game-btn">PLAY LUDO</button>
             </div>
             <div class="game-card">
-                <img src="https://img.freepik.com/premium-vector/vector-illustration-snakes-ladders-board-game_419263-14.jpg" class="game-img" style="filter: grayscale(1);">
-                <button class="game-btn" style="background: #444;">SOON</button>
+                <img src="https://p7.hiclipart.com/preview/137/637/214/snakes-and-ladders-free-snakes-and-ladders-deluxe-snakes-ladders-king-ladders.jpg" class="game-img" style="filter: grayscale(1);">
+                <button class="game-btn" style="background: #444;">COMING SOON</button>
             </div>
         </div>
     </div>
@@ -156,6 +159,67 @@
         <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Transactions</h3></div>
         <div id="transList"></div>
     </div>
+
+
+    <!-- Wallet History Section -->
+<div id="walletHis" class="page-section">
+    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Wallet History</h3></div>
+    <div id="walletList"></div>
+</div>
+
+<!-- Refer History Section -->
+<div id="referHis" class="page-section">
+    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Refer History</h3></div>
+    <div id="referList"><p style="text-align:center; padding:20px;">Abhi tak koi referral nahi hai.</p></div>
+</div>
+
+<!-- Refer & Earn Section -->
+<div id="referearn" class="page-section">
+    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Refer & Earn</h3></div>
+    <div class="history-card" style="text-align:center;">
+        <i class="fas fa-gift fa-3x" style="color:var(--accent); margin-bottom:15px;"></i>
+        <h4>Invite Friends & Earn</h4>
+        <p style="font-size:12px; color:#94a3b8;">Har referral par paayein ₹10 ka bonus!</p>
+        <div style="background:#0f172a; padding:15px; border-radius:10px; margin:15px 0; border:1px dashed var(--primary);">
+            <span style="font-size:10px; color:var(--primary);">YOUR REFER CODE</span><br>
+            <b id="myReferCode" style="font-size:20px; letter-spacing:2px;">LOADING...</b>
+        </div>
+        <button class="btn-proceed" onclick="shareReferral()">SHARE NOW</button>
+    </div>
+</div>
+
+<!-- Notifications Section -->
+<div id="notifications" class="page-section">
+    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Notifications</h3></div>
+    <div id="notifList"><p style="text-align:center; padding:20px;">Koi nayi notification nahi hai.</p></div>
+</div>
+
+<!-- Policy Section -->
+<div id="policy" class="page-section">
+    <div class="section-header">
+        <i class="fas fa-arrow-left" onclick="closeSections()"></i>
+        <h3>Our Policies</h3>
+    </div>
+    
+    <div class="history-card" style="font-size:13px; line-height:1.6; margin-bottom: 15px;">
+        <h4 style="margin-top: 0; color: var(--primary); font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">1. General Game Rules</h4>
+        <p><b>• Fair Play:</b> Kisi bhi tarah ki cheating karne par account ban kar diya jayega.</p>
+        <p><b>• Withdrawals:</b> Minimum withdrawal ₹100 hai aur Admin fee 5% lagegi.</p>
+        <p><b>• Support:</b> 24/7 help ke liye WhatsApp use karein.</p>
+    </div>
+
+    <div class="history-card" style="font-size:13px; line-height:1.6;">
+        <h4 style="margin-top: 0; color: var(--accent); font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">2. Cancellation & Refund Policy</h4>
+        <p>Thanks for being connected with <b>khelbhailudo</b>. If you are not entirely satisfied with your subscription, we are here to help.</p>
+        
+        <p style="margin-top: 12px; font-weight: bold; color: var(--primary);">• Refunds Process:</p>
+        <p style="padding-left: 10px; margin-top: -5px; color: #cbd5e1;">Once we receive your Refund request, we will inspect it and notify you on the status of your refund.</p>
+        <p style="padding-left: 10px; color: #cbd5e1;">If your refund request is approved, we will initiate a refund to your credit card (or original method of payment) within <b>7 working days</b>. You will receive the credit within a certain amount of days, depending on your card issuer's policies.</p>
+        
+        <p style="margin-top: 12px; font-weight: bold; color: var(--primary);">• Technical Glitch Clause:</p>
+        <p style="padding-left: 10px; margin-top: -5px; color: #cbd5e1;">In case of unforeseen technical glitch, <b>khelbhailudo</b> would refund subscription upon reviewing the complaint. The final decision lies with the company.</p>
+    </div>
+</div>
 
     <script>
         const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
@@ -265,6 +329,35 @@
                 `).join('') || '<p>No transactions found.</p>';
             } catch (err) {}
         }
+
+        // openSection function ko update karein
+function openSection(id) {
+    toggleMenu();
+    // Saare sections band karein
+    document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none');
+    // Target section kholein
+    const target = document.getElementById(id);
+    if(target) {
+        target.style.display = 'block';
+    } else {
+        alert("Ye section jald hi chalu hoga!");
+    }
+
+    // Data load logic
+    if(id === 'gameHistorySection') fetchGameHistory();
+    if(id === 'transSection' || id === 'walletHis') fetchTransactions();
+    if(id === 'referearn') {
+        // Maan lijiye user ka Mobile No hi Refer Code hai
+        document.getElementById('myReferCode').innerText = localStorage.getItem('userMobile') || "GUEST123";
+    }
+}
+
+// Referral share karne ka function
+function shareReferral() {
+    const code = document.getElementById('myReferCode').innerText;
+    const text = `Join Ludo Empire using my code ${code} and earn ₹10 bonus! Download now: https://autotechsolutions25-netizen.github.io/khelbhailudo/index.html`;
+    window.open(`whatsapp://send?text=${encodeURIComponent(text)}`);
+}
 
         function logout() { localStorage.clear(); window.location.href = "index.html"; }
     </script>
