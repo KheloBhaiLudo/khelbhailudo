@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Refer History - Ludo Empire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00d2ff; --secondary: #3a7bd5; --dark: #0f172a; --accent: #ffd700; --card-bg: #1e293b; --green: #22c55e; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; }
+
+        .header {
+            display: flex; align-items: center; gap: 15px; padding: 15px;
+            background: var(--card-bg); position: sticky; top: 0; z-index: 100;
+        }
+        .header i { font-size: 20px; cursor: pointer; color: var(--primary); }
+        .header h3 { margin: 0; font-size: 18px; }
+
+        .refer-stats {
+            margin: 15px; padding: 20px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .stat-box span { font-size: 11px; opacity: 0.9; text-transform: uppercase; }
+        .stat-box h2 { margin: 5px 0 0; font-size: 24px; }
+
+        .history-container { padding: 15px; }
+        .refer-card {
+            background: var(--card-bg); border-radius: 12px; padding: 15px;
+            margin-bottom: 12px; border: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .user-info b { display: block; font-size: 14px; color: #f1f5f9; }
+        .user-info small { color: #94a3b8; font-size: 11px; }
+        
+        .reward-info { text-align: right; }
+        .reward-amt { font-weight: bold; font-size: 15px; color: var(--green); display: block; }
+        .status-tag { font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
+        
+        .st-pending { background: rgba(255, 215, 0, 0.1); color: var(--accent); }
+        .st-success { background: rgba(34, 197, 94, 0.1); color: var(--green); }
+
+        .no-data { text-align: center; padding: 60px 20px; color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <i class="fas fa-arrow-left" onclick="history.back()"></i>
+        <h3>Refer History</h3>
+    </div>
+
+    <div class="refer-stats">
+        <div class="stat-box">
+            <span>Total Refer Earnings</span>
+            <h2 id="totalReferEarn">₹0</h2>
+        </div>
+        <div class="stat-box" style="text-align: right;">
+            <span>Friends Joined</span>
+            <h2 id="totalFriends">0</h2>
+        </div>
+    </div>
+
+    <div style="padding: 0 15px;"><h4 style="font-size: 13px; color: #94a3b8;">Your Referrals Status</h4></div>
+
+    <div class="history-container" id="referList">
+        <p class="no-data">Loading referrals...</p>
+    </div>
+
+    <script>
+        const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+        const rawUserId = localStorage.getItem('userId');
+        const userId = (rawUserId && !isNaN(rawUserId)) ? parseInt(rawUserId) : null;
+
+        window.onload = () => {
+            if(!userId) { 
+                alert("Session expired! Please login again.");
+                window.location.href = "index.html"; 
+                return; 
+            }
+            fetchReferralHistory();
+        };
+
+        async function fetchReferralHistory() {
+            const listDiv = document.getElementById('referList');
+            if (!listDiv) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/user/referrals/${userId}`);
+                
+                // Real-time Gateway Mismatch Handler (Screenshot 1 solution)
+                if (res.status === 502) {
+                    listDiv.innerHTML = `
+                        <div class="no-data" style="color:var(--accent);">
+                            <i class="fas fa-server fa-2x"></i>
+                            <p>Render Server is waking up (502 Gateway).</p>
+                            <small style="color:#64748b;">Automatic retry in 4 seconds...</small>
+                        </div>`;
+                    setTimeout(fetchReferralHistory, 4000);
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error(`Server status returned error ${res.status}`);
+                }
+
+                const data = await res.json();
+
+                if(!data || !Array.isArray(data) || data.length === 0) {
+                    listDiv.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-users fa-3x"></i>
+                            <p>Abhi tak koi referral nahi mila hai.</p>
+                            <small style="color:#64748b; display:block; margin-top:5px;">Connected to Account ID: ${userId}</small>
+                        </div>`;
+                    document.getElementById('totalReferEarn').innerText = "₹0";
+                    document.getElementById('totalFriends').innerText = "0";
+                    return;
+                }
+
+                let totalEarned = 0;
+                let friendsCount = data.length;
+
+                listDiv.innerHTML = data.map(r => {
+                    const currentStatus = r.kyc_status ? r.kyc_status.toString().trim().toLowerCase() : 'pending';
+                    const isApproved = (currentStatus === 'approved');
+                    
+                    if(isApproved) totalEarned += 10;
+                    const joinDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '--/--/----';
+
+                    return `
+                        <div class="refer-card">
+                            <div class="user-info">
+                                <b>${r.username || 'Ludo Player'}</b>
+                                <small>Joined: ${joinDate}</small>
+                            </div>
+                            <div class="reward-info">
+                                <span class="reward-amt">${isApproved ? '+ ₹10' : '₹0'}</span>
+                                <span class="status-tag ${isApproved ? 'st-success' : 'st-pending'}">
+                                    ${isApproved ? 'VERIFIED' : 'PENDING KYC'}
+                                </span>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                document.getElementById('totalReferEarn').innerText = "₹" + totalEarned;
+                document.getElementById('totalFriends').innerText = friendsCount;
+
+            } catch (err) {
+                console.error("Critical System Catch:", err);
+                listDiv.innerHTML = `
+                    <div class="no-data" style="color:#ef4444;">
+                        <i class="fas fa-wifi fa-2x"></i>
+                        <p>Connection Timeout or Gateway Blocked.</p>
+                        <small style="color:#64748b;">Retry manually by pulling down or reloading.</small>
+                    </div>`;
+            }
+        }
+    </script>
+</body>
+</html>
