@@ -699,7 +699,7 @@ const response = await axios.post('https://api.ekqr.in/api/create_order', {
     "customer_name": user.full_name.substring(0, 15),
     "customer_email": "user@gmail.com",
     "customer_mobile": user.mobile_no.replace(/\D/g, "").slice(-10),
-    "redirect_url": "https://autotechsolutions25-netizen.github.io/dashboard.html", // Yahan comma dekho
+    "redirect_url": "https:// KheloBhaiLudo.github.io/dashboard.html", // Yahan comma dekho
     "udf1": userId.toString() // Is line se pehle comma missing tha!
 });
 
