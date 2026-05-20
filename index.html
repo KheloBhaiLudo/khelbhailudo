@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ludo Platform</title>
     
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-
     <style>
         :root { --primary: #d32f2f; --gold: #ffd700; --dark-bg: #1a1a1a; --card-bg: #2c2c2c; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--dark-bg); color: white; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
@@ -29,9 +26,6 @@
         .modal-content { padding: 30px 20px; text-align: left; max-width: 400px; margin: auto; }
         .modal-content h3 { color: var(--gold); border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 20px; }
         .file-label { font-size: 13px; color: #bbb; margin-top: 10px; display: block; }
-
-        /* Recaptcha hidden placeholder */
-        #recaptcha-container { margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -41,14 +35,13 @@
     
     <div id="mobileSection">
         <input type="number" id="loginMobile" placeholder="Enter Mobile Number" maxlength="10">
-        <div id="recaptcha-container"></div>
-        <button id="otpReqBtn" onclick="requestFirebaseOTP()">Send OTP</button>
+        <button id="otpReqBtn" onclick="requestFast2SMS_OTP()">Send OTP</button>
     </div>
 
     <div id="otpSection" style="display: none;">
         <p style="color: var(--gold); font-size: 14px;">OTP aapke mobile par bhej diya gaya hai.</p>
-        <input type="number" id="loginOTP" placeholder="Enter 6-Digit OTP" maxlength="6">
-        <button id="verifyBtn" onclick="verifyFirebaseLogin()">Login</button>
+        <input type="number" id="loginOTP" placeholder="Enter 4-Digit OTP" maxlength="4">
+        <button id="verifyBtn" onclick="verifyFast2SMS_Login()">Login</button>
         <div class="link-text" onclick="location.reload()" style="margin-top: 10px; color: #aaa;">Back to Mobile</div>
     </div>
 
@@ -76,18 +69,7 @@
 </div>
 
 <script>
-    // --- 2. FIREBASE INITIALIZATION ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyDVVYZdaumn8eF_7uLwGYQfiYPFBk-g74s",
-      authDomain: "khel-bhai-ludo-3c152.firebaseapp.com",
-      projectId: "khel-bhai-ludo-3c152",
-      storageBucket: "khel-bhai-ludo-3c152.firebasestorage.app",
-      messagingSenderId: "89832698030",
-      appId: "1:89832698030:web:edf4792ab7467655f7fd3f",
-      measurementId: "G-BXZEE5MX5G"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
 
     // Variable to hold refer id from URL parameters globally
     let globalReferBy = null;
@@ -106,132 +88,146 @@
         }
     });
 
-    // FIREBASE REQUEST OTP
-    async function requestFirebaseOTP() {
-        const mobile = document.getElementById('loginMobile').value;
-        const btn = document.getElementById('otpReqBtn');
+// 1. FAST2SMS REQUEST OTP (Updated with Smart Notification Alerts)
+async function requestFast2SMS_OTP() {
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const btn = document.getElementById('otpReqBtn');
 
-        if(mobile.length < 10) return alert("Sahi 10-digit mobile number daalein!");
+    if(mobile.length < 10) return alert("Sahi 10-digit mobile number daalein!");
 
-        // Recaptcha setup (Invisible)
-        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-            'size': 'invisible'
-        });
-
-        const phoneNumber = "+91" + mobile;
-        btn.disabled = true;
-        btn.innerText = "Sending SMS...";
-
-        auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
-            .then((confirmationResult) => {
-                window.confirmationResult = confirmationResult;
-                document.getElementById('mobileSection').style.display = 'none';
-                document.getElementById('otpSection').style.display = 'block';
-            }).catch((error) => {
-                console.error(error);
-                alert("Error: " + error.message);
-                btn.disabled = false;
-                btn.innerText = "Send OTP";
-            });
-    }
-
-    // FIREBASE VERIFY LOGIN
-    async function verifyFirebaseLogin() {
-        const otp = document.getElementById('loginOTP').value;
-        const mobile = document.getElementById('loginMobile').value;
-        const btn = document.getElementById('verifyBtn');
-
-        btn.disabled = true;
-        btn.innerText = "Verifying...";
-
-        confirmationResult.confirm(otp)
-            .then(async (result) => {
-                // OTP SUCCESS! Ab backend ko batao
-                const response = await fetch('https://khel-bhai-luso-backend-service.onrender.com/api/verify-login-firebase', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ mobile: mobile })
-                });
-
-                const data = await response.json();
-                if(data.success) {
-                    localStorage.setItem('userId', data.userId);
-                    window.location.href = data.termsAccepted ? "dashboard.html" : "term.html";
-                } else {
-                    alert(data.error);
-                    btn.disabled = false;
-                    btn.innerText = "Login";
-                }
-            }).catch((error) => {
-                alert("Galat OTP! Kripya check karein.");
-                btn.disabled = false;
-                btn.innerText = "Login";
-            });
-    }
-
-    // --- REGISTRATION LOGIC WITH REFER SYSTEM ---
-async function submitRegistration() {
-    const btn = document.getElementById('regBtn');
-    
-    // Strict Input Element Targeting Layer
-    const frontInput = document.getElementById('aadhaarFront');
-    const backInput = document.getElementById('aadhaarBack');
-    
-    const frontFile = frontInput && frontInput.files ? frontInput.files[0] : null;
-    const backFile = backInput && backInput.files ? backInput.files[0] : null;
-
-    const fullName = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const mobile = document.getElementById('regMobile').value.trim();
-    const username = document.getElementById('regUser').value.trim();
-    const password = document.getElementById('regPass').value.trim();
-
-    if(!fullName || !email || !mobile || !username || !password) {
-        return alert("Kripya saari details bharein!");
-    }
-    if(!frontFile || !backFile) {
-        return alert("Aadhaar card ke dono sides upload karna anivarya hai!");
-    }
-
-    const formData = new FormData();
-    formData.append('fullName', fullName);
-    formData.append('email', email);
-    formData.append('mobile', mobile);
-    formData.append('username', username);
-    formData.append('password', password);
-    formData.append('aadharFront', frontFile);
-    formData.append('aadharBack', backFile);
-    
-    if(globalReferBy) {
-        formData.append('referred_by', globalReferBy);
-    }
+    btn.disabled = true;
+    btn.innerText = "Sending OTP...";
 
     try {
-        btn.disabled = true;
-        btn.innerText = "Registering & Uploading...";
-        
-        const response = await fetch('https://khel-bhai-luso-backend-service.onrender.com/api/register', {
+        const response = await fetch(`${API_BASE}/auth/send-otp`, {
             method: 'POST',
-            body: formData // Content-Type header mat lagana, browser automatic boundary set karega
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile: mobile })
         });
-        
-        const result = await response.json();
-        if (result.success) {
-            alert("Registration successful! Documents safely uploaded. Admin approval ka wait karein.");
-            toggleModal('regModal', false);
-            // Form reset logic
-            if(frontInput) frontInput.value = '';
-            if(backInput) backInput.value = '';
-        } else { 
-            alert("Error: " + result.error); 
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 🔥 CHRISITAN NOTIFICATION POPUP: User ko screen par hi OTP dikh jayega!
+            alert(`🔒 Ludo OTP:\nAapka verification code hai: ${data.otp}`);
+            
+            // UI elements switch karein
+            document.getElementById('mobileSection').style.display = 'none';
+            document.getElementById('otpSection').style.display = 'block';
+        } else {
+            alert("Error: " + data.error);
+            btn.disabled = false;
+            btn.innerText = "Send OTP";
         }
-    } catch (error) { 
-        alert("Server connection failed during dynamic upload."); 
-    } finally { 
-        btn.disabled = false; 
-        btn.innerText = "Save & Register"; 
+    } catch (error) {
+        console.error(error);
+        alert("Server connection failed during OTP routing.");
+        btn.disabled = false;
+        btn.innerText = "Send OTP";
     }
 }
+
+// 2. FAST2SMS VERIFY & DIRECT PAYLOAD LOGIN
+async function verifyFast2SMS_Login() {
+    const otp = document.getElementById('loginOTP').value.trim();
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const btn = document.getElementById('verifyBtn');
+
+    if(!otp) return alert("Kripya OTP daalein!");
+
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+
+    try {
+        // Correctly hitting the unique combined verification endpoint
+        const response = await fetch(`${API_BASE}/auth/verify-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile: mobile, otp: otp })
+        });
+
+        const data = await response.json();
+
+        if(data.success) {
+            // Storage configuration and direct redirection map
+            localStorage.setItem('userId', data.userId);
+            window.location.href = data.termsAccepted ? "dashboard.html" : "term.html";
+        } else {
+            alert(data.error || "Galat OTP! Kripya check karein.");
+            btn.disabled = false;
+            btn.innerText = "Login";
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Network connection failure during transaction compilation.");
+        btn.disabled = false;
+        btn.innerText = "Login";
+    }
+}
+
+    // --- REGISTRATION LOGIC WITH REFER SYSTEM ---
+    async function submitRegistration() {
+        const btn = document.getElementById('regBtn');
+        
+        // Strict Input Element Targeting Layer
+        const frontInput = document.getElementById('aadhaarFront');
+        const backInput = document.getElementById('aadhaarBack');
+        
+        const frontFile = frontInput && frontInput.files ? frontInput.files[0] : null;
+        const backFile = backInput && backInput.files ? backInput.files[0] : null;
+
+        const fullName = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const mobile = document.getElementById('regMobile').value.trim();
+        const username = document.getElementById('regUser').value.trim();
+        const password = document.getElementById('regPass').value.trim();
+
+        if(!fullName || !email || !mobile || !username || !password) {
+            return alert("Kripya saari details bharein!");
+        }
+        if(!frontFile || !backFile) {
+            return alert("Aadhaar card ke dono sides upload karna anivarya hai!");
+        }
+
+        const formData = new FormData();
+        formData.append('fullName', fullName);
+        formData.append('email', email);
+        formData.append('mobile', mobile);
+        formData.append('username', username);
+        formData.append('password', password);
+        formData.append('aadharFront', frontFile);
+        formData.append('aadharBack', backFile);
+        
+        if(globalReferBy) {
+            formData.append('referred_by', globalReferBy);
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerText = "Registering & Uploading...";
+            
+            const response = await fetch(`${API_BASE}/register`, {
+                method: 'POST',
+                body: formData // Content-Type header mat lagana, browser automatic boundary set karega
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert("Registration successful! Documents safely uploaded. Admin approval ka wait karein.");
+                toggleModal('regModal', false);
+                // Form reset logic
+                if(frontInput) frontInput.value = '';
+                if(backInput) backInput.value = '';
+            } else { 
+                alert("Error: " + result.error); 
+            }
+        } catch (error) { 
+            alert("Server connection failed during dynamic upload."); 
+        } finally { 
+            btn.disabled = false; 
+            btn.innerText = "Save & Register"; 
+        }
+    }
 </script>
 </body>
 </html>
