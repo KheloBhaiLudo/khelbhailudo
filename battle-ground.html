@@ -96,7 +96,7 @@
     </div>
 
     <script>
-        const BACKEND_URL = "https://khel-bhai-luso-backend-service.onrender.com";
+        const BACKEND_URL = "https://khelbhailudo.onrender.com";
         const API_BASE = BACKEND_URL + "/api";
         const urlParams = new URLSearchParams(window.location.search);
         const battleId = urlParams.get('id');
@@ -202,7 +202,7 @@ async function uploadWin() {
 
     try {
         // Direct URL use karke dekhte hain mismatch hatane ke liye
-        const res = await fetch("https://khel-bhai-luso-backend-service.onrender.com/api/battles/submit-result", {
+        const res = await fetch("https://khelbhailudo.onrender.com/api/battles/submit-result", {
             method: 'POST',
             body: formData
             // Note: Yahan 'Content-Type' header BILKUL nahi hona chahiye
