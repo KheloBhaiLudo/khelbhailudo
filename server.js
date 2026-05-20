@@ -24,10 +24,11 @@ const pool = require('./db');
 const supabaseClientInstance = pool.supabase || global.supabase;
 
 
-// CORS Multi-Origin configuration layer (Cleaned up for khelbhailudo.com & New Github Profile)
+// CORS Multi-Origin configuration layer (100% Final Fix for Exact Sub-folder Link)
 const allowedOrigins = [
-    'https://khelobhailudo.github.io',                  // ✨ NAYA CLIENT FRONTEND LINK (Strictly Added)
-    'https://khelobhailudo.github.io/khelbhailudo/',    // Purana sub-folder mapping layout
+    'https://khelobhailudo.github.io/khelbhailudo/',    // 🔥 EXACT MATCH: Aapka current active site link
+    'https://khelobhailudo.github.io/khelbhailudo',     // Safe backup for clean sub-folder string
+    'https://khelobhailudo.github.io',                  // Root domain safe bypass
     'https://khelbhailudo.com',
     'https://www.khelbhailudo.com'
 ];
@@ -48,6 +49,8 @@ app.use(cors({
 
 // Dynamic Memory Cache Allocation for OTP tracking
 const otpStore = {};
+
+
 // --- DATABASE TABLES INITIALIZATION ---
 const initDB = async () => {
     try {
