@@ -25,7 +25,7 @@ const supabaseClientInstance = pool.supabase || global.supabase;
 
 // CORS Multi-Origin configuration layer (Cleaned up for khelbhailudo.com)
 const allowedOrigins = [
-    'https://autotechsolutions25-netizen.github.io',
+    'https://khelobhailudo.github.io/khelbhailudo/',
     'https://khelbhailudo.com',
     'https://www.khelbhailudo.com'
 ];
