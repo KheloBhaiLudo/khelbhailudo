@@ -3,86 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Battle Ground</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Admin Login - Ludo Master</title>
     <style>
-        body {
-            margin: 0; padding: 0; height: 100vh; display: flex; align-items: center;
-            justify-content: center; background: #0f172a; font-family: 'Poppins', sans-serif;
-        }
-        .login-card {
-            background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: 100%; max-width: 380px; text-align: center; border: 1px solid #334155;
-        }
-        .logo-circle {
-            width: 70px; height: 70px; background: #ef4444; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
-            font-size: 30px; color: white; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-        }
-        h2 { color: white; margin-bottom: 30px; font-weight: 600; }
-        .input-group { position: relative; margin-bottom: 20px; }
-        .input-group i { position: absolute; left: 15px; top: 15px; color: #64748b; }
-        input {
-            width: 100%; padding: 12px 12px 12px 45px; border-radius: 10px; border: 1px solid #334155;
-            background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; outline: none;
-        }
-        input:focus { border-color: #ef4444; }
-        .btn-login {
-            width: 100%; padding: 14px; background: #ef4444; border: none; border-radius: 10px;
-            color: white; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s;
-        }
-        .btn-login:hover { background: #dc2626; transform: translateY(-2px); }
-        .footer-text { margin-top: 20px; color: #64748b; font-size: 12px; }
+        body { font-family: sans-serif; background: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 300px; border: 1px solid #d32f2f; }
+        h2 { color: #d32f2f; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #d32f2f; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
     <div class="login-card">
-        <div class="logo-circle"><i class="fas fa-user-shield"></i></div>
-        <h2>Admin Access</h2>
-
-        <div class="input-group">
-            <i class="fas fa-user"></i>
-            <input type="text" id="adminUser" placeholder="Username">
-        </div>
-
-        <div class="input-group">
-            <i class="fas fa-lock"></i>
-            <input type="password" id="adminPass" placeholder="Password">
-        </div>
-
-        <button class="btn-login" onclick="handleLogin()">SECURE LOGIN</button>
-        
-        <div class="footer-text">AutoTech Solutions &copy; 2026</div>
+        <h2>Master Admin</h2>
+        <input type="password" id="adminPass" placeholder="Enter Admin Password">
+        <button onclick="loginAdmin()">LOGIN</button>
     </div>
 
     <script>
-        async function handleLogin() {
-            const user = document.getElementById('adminUser').value;
-            const pass = document.getElementById('adminPass').value;
-
-            if(!user || !pass) return alert("Kripya details bharein!");
-
-            try {
-                const res = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ username: user, password: pass })
-                });
-
-                const data = await res.json();
-
-                if(data.success) {
-                    // Security ke liye ek token ya flag save karein
-                    localStorage.setItem('admin_logged_in', 'true');
-                    window.location.href = "/admin-master.html";
-                } else {
-                    alert(data.message || "Invalid Login!");
-                }
-            } catch (err) {
-                alert("Server error. Check backend.");
-            }
+async function loginAdmin() {
+    const password = document.getElementById('adminPass').value;
+    try {
+const res = await fetch('https://khel-bhai-luso-backend-service.onrender.com/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+});
+        
+        // Agar route nahi mila toh alert dikhaye
+        if (res.status === 404) {
+            return alert("Error: Backend mein login route missing hai! Server deploy karein.");
         }
+
+        const data = await res.json();
+        if(data.success) {
+            localStorage.setItem('admin_logged_in', 'true');
+            window.location.href = "admin-pannel.html";
+        } else {
+            alert("Galat Password!");
+        }
+    } catch (err) {
+        alert("Server se connect nahi ho pa raha hai.");
+    }
+}
     </script>
 </body>
 </html>
