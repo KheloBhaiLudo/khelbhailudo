@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ludo Admin Control Panel</title>
+    <style>
+        :root { --primary: #d32f2f; --dark: #1a1a1a; --white: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { background: var(--primary); color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 25px; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; color: #333; }
+
+        /* Form Layout */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        
+        /* Table Styling */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #f8f9fa; color: #666; text-transform: uppercase; font-size: 13px; }
+        
+        /* Buttons */
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-save { background: #28a745; color: white; }
+        .btn-save:hover { background: #218838; }
+        .btn-approve { background: #007bff; color: white; }
+        .btn-approve:hover { background: #0069d9; }
+        .btn-view { background: #6c757d; color: white; text-decoration: none; font-size: 12px; padding: 5px 10px; }
+
+        .badge { background: #ffc107; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Ludo Real Money - Admin Panel</h1>
+    </div>
+
+    <div class="card">
+        <h2>1. Mail & SMTP Settings</h2>
+        <p style="font-size: 13px; color: #666;">Yahan apna Gmail aur 16-digit ka 'App Password' daalein taaki users ko verification mail ja sake.</p>
+        <div class="settings-grid">
+            <input type="email" id="adminEmail" placeholder="Admin Gmail ID">
+            <input type="password" id="smtpPass" placeholder="Gmail App Password">
+        </div>
+        <button class="btn btn-save" onclick="saveAdminSettings()">Save SMTP Config</button>
+    </div>
+
+    <div class="card">
+        <h2>2. Pending Approvals</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email / Mobile</th>
+                        <th>Aadhaar Docs</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="pendingUsersList">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Page load hone par users fetch karein
+    window.onload = fetchPendingUsers;
+
+    async function fetchPendingUsers() {
+        const tbody = document.getElementById('pendingUsersList');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading pending users...</td></tr>';
+
+        try {
+            const response = await fetch('/api/admin/pending-users');
+            const users = await response.json();
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Abhi koi naya user approval ke liye nahi hai.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = ''; // Clear loading message
+            users.forEach(user => {
+                const row = `
+                    <tr>
+                        <td><strong>${user.full_name}</strong></td>
+                        <td>${user.username}</td>
+                        <td>${user.email}<br><small>${user.mobile_no}</small></td>
+                        <td>
+                            <a href="${user.aadhar_front_url}" target="_blank" class="btn btn-view">Front</a>
+                            <a href="${user.aadhar_back_url}" target="_blank" class="btn btn-view">Back</a>
+                        </td>
+                        <td>
+                            <button class="btn btn-approve" onclick="approveUser(${user.id}, '${user.email}')">Approve</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        } catch (error) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error loading users. Backend check karein.</td></tr>';
+        }
+    }
+
+    async function approveUser(userId, email) {
+        if (!confirm(`Kya aap ${email} ko approve karna chahte hain?`)) return;
+
+        try {
+            const response = await fetch('/api/admin/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, userEmail: email })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert("User Approved! Confirmation mail bhej diya gaya hai.");
+                fetchPendingUsers(); // List refresh karein
+            } else {
+                alert("Approval fail: " + result.error);
+            }
+        } catch (error) {
+            alert("Server connection failed.");
+        }
+    }
+
+    async function saveAdminSettings() {
+        const email = document.getElementById('adminEmail').value;
+        const pass = document.getElementById('smtpPass').value;
+
+        if (!email || !pass) {
+            alert("Kripya dono fields bharein!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, pass })
+            });
+            const result = await response.json();
+            if (result.success) alert("SMTP Settings Saved Successfully!");
+        } catch (error) {
+            alert("Settings save karne mein error aaya.");
+        }
+    }
+</script>
+
+</body>
+</html>

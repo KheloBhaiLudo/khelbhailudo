@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ludo Empire - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00d2ff; --secondary: #3a7bd5; --dark: #0f172a; --accent: #ffd700; --card-bg: #1e293b; --green: #22c55e; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow-x: hidden; }
+
+        /* Sidebar & Overlay */
+        .sidebar { position: fixed; left: -280px; top: 0; width: 280px; height: 100%; background: var(--card-bg); z-index: 1000; transition: 0.4s; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+        .sidebar.active { left: 0; }
+        .sidebar-header { padding: 30px 20px; background: linear-gradient(to right, var(--secondary), var(--primary)); text-align: center; }
+        .menu-item { padding: 15px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 15px; cursor: pointer; font-size: 14px; }
+        .menu-item:active { background: #0f172a; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
+
+        /* Navbar */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #1e293b; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .nav-left { display: flex; align-items: center; gap: 12px; }
+        .menu-icon { font-size: 22px; cursor: pointer; color: var(--primary); }
+        .wallet-stats { display: flex; gap: 8px; }
+        .stat-box { background: #0f172a; padding: 4px 10px; border-radius: 8px; border: 1px solid #334155; display: flex; flex-direction: column; align-items: center; min-width: 65px; cursor: pointer; }
+        .stat-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; }
+        .stat-val { font-size: 13px; font-weight: bold; color: var(--accent); }
+
+        /* Modal / Popups */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card-bg); width: 90%; max-width: 400px; border-radius: 20px; padding: 25px; text-align: center; border: 1px solid var(--primary); position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 15px; font-size: 20px; color: #94a3b8; cursor: pointer; }
+        .win-token-display { background: rgba(255, 215, 0, 0.1); padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px dashed var(--accent); }
+        .withdraw-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; margin-top: 10px; font-size: 16px; text-align: center; }
+        .btn-proceed { background: linear-gradient(to right, var(--green), #15803d); color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        
+        #successPopup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 4000; flex-direction: column; align-items: center; justify-content: center; color: #0f172a; }
+        .success-circle { width: 100px; height: 100px; background: #5f259f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 50px; margin-bottom: 20px; }
+
+        /* Content Sections */
+        .page-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); z-index: 2000; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .section-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+        .history-card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 12px; border-left: 4px solid var(--primary); }
+        .history-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+        .status-win { color: var(--green); font-weight: bold; }
+        .status-lost { color: #ef4444; font-weight: bold; }
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
+        .game-card { background: var(--card-bg); border-radius: 12px; border: 1px solid #334155; overflow: hidden; }
+        .game-img { width: 100%; height: 100px; object-fit: cover; }
+        .game-btn { background: #d32f2f; color: white; border: none; padding: 8px; width: 100%; font-weight: bold; cursor: pointer;}
+        .kyc-status-box { padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 13px; text-align: left; }
+        .kyc-approved { background: rgba(34, 197, 94, 0.2); border-left: 5px solid var(--green); color: var(--green); }
+        .kyc-pending { background: #334155; border-left: 5px solid var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeWithdrawModal()">&times;</span>
+            <h3 style="margin-top:0;">Withdraw Winning</h3>
+            <div class="win-token-display">
+                <span style="font-size: 12px; color: #94a3b8;">Total Winning Balance</span><br>
+                <span style="font-size: 24px; font-weight: bold; color: var(--accent);">₹<span id="popWinBal">0</span></span>
+            </div>
+            <div style="text-align: left;">
+                <label style="font-size: 12px; color: var(--primary);">Enter Amount to Withdraw</label>
+                <input type="number" id="withAmt" class="withdraw-input" placeholder="Min. ₹100">
+            </div>
+            <button class="btn-proceed" onclick="proceedWithdraw()">PROCEED WITHDRAWAL</button>
+            <p style="font-size: 10px; color: #ef4444; margin-top: 10px;">*Amount will be deducted from your Winning Wallet.</p>
+        </div>
+    </div>
+
+    <div id="successPopup">
+        <div class="success-circle"><i class="fas fa-check"></i></div>
+        <h2 style="margin:0;">₹<span id="successAmt">0</span></h2>
+        <p style="color: #6b7280; font-weight: 500;">Withdrawal Request Sent!</p>
+        <button onclick="location.reload()" style="margin-top:30px; background:#5f259f; color:white; border:none; padding:12px 40px; border-radius:25px; font-weight:bold;">DONE</button>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div style="width: 60px; height: 60px; background: white; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; color: var(--dark);">
+                <i class="fas fa-user fa-2x"></i>
+            </div>
+            <h4 id="sideName" style="margin:0; color: white;">User Name</h4>
+        </div>
+        <div class="menu-item" onclick="openSection('profileSection')"><i class="fas fa-user-circle"></i> My Profile</div>
+        <div class="menu-item" onclick="openSection('gameHistorySection')"><i class="fas fa-history"></i> Game History</div>
+        <div class="menu-item" onclick="openSection('transSection')"><i class="fas fa-wallet"></i> Wallet Transactions</div>
+        <div class="menu-item" style="color: #ef4444;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+    </div>
+
+    <div class="navbar">
+        <div class="nav-left">
+            <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
+            <div>
+                <div style="font-size: 10px; color: #94a3b8;">Welcome,</div>
+                <div id="userName" style="font-size: 14px; font-weight: bold; color: var(--primary);">Loading...</div>
+            </div>
+        </div>
+        <div class="wallet-stats">
+            <div class="stat-box" onclick="location.href='add-cash.html'">
+                <span class="stat-label">Deposit</span>
+                <span class="stat-val">₹<span id="cashBal">0</span></span>
+            </div>
+            <div class="stat-box" style="border-color: var(--green);" onclick="openWithdrawModal()">
+                <span class="stat-label">Winning</span>
+                <span class="stat-val" style="color: var(--green);">₹<span id="earnBal">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainDashboard">
+        <div style="margin: 15px; background: linear-gradient(135deg, #ef4444, #b91c1c); border-radius: 10px; padding: 12px; font-size: 12px; display: flex; gap: 10px;">
+            <i class="fas fa-bell"></i>
+            <div><b>Alert:</b> Help Support WhatsApp: +91 9672697402</div>
+        </div>
+        
+        <h3 style="margin-left: 15px; font-size: 16px;">Play & Win</h3>
+        <div class="game-grid">
+            <div class="game-card" onclick="location.href='ludo.html'">
+                <img src="https://www.shutterstock.com/image-vector/ludo-board-game-top-view-600nw-1934371583.jpg" class="game-img">
+                <button class="game-btn">PLAY LUDO</button>
+            </div>
+            <div class="game-card">
+                <img src="https://img.freepik.com/premium-vector/vector-illustration-snakes-ladders-board-game_419263-14.jpg" class="game-img" style="filter: grayscale(1);">
+                <button class="game-btn" style="background: #444;">SOON</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="profileSection" class="page-section">
+        <div class="section-header">
+            <i class="fas fa-arrow-left" onclick="closeSections()"></i>
+            <h3>My Profile</h3>
+        </div>
+        <div class="history-card" style="text-align: center;">
+            <p><b>Username:</b> <span id="profUser">--</span></p>
+            <p><b>Mobile:</b> <span id="profMob">--</span></p>
+            <p><b>Joined On:</b> <span id="profDate">--</span></p>
+            <hr style="border-color: #334155;">
+            <div id="kycStatusContainer"></div>
+        </div>
+    </div>
+
+    <div id="gameHistorySection" class="page-section">
+        <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Game History</h3></div>
+        <div id="gameList"></div>
+    </div>
+
+    <div id="transSection" class="page-section">
+        <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Transactions</h3></div>
+        <div id="transList"></div>
+    </div>
+
+    <script>
+        const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+        const userId = localStorage.getItem('userId');
+        let currentWinningBal = 0;
+        let kycStatus = 'pending';
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+            const overlay = document.getElementById('overlay');
+            overlay.style.display = (overlay.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function openSection(id) {
+            toggleMenu();
+            document.getElementById(id).style.display = 'block';
+            if(id === 'gameHistorySection') fetchGameHistory();
+            if(id === 'transSection') fetchTransactions();
+        }
+
+        function closeSections() { document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none'); }
+
+        window.onload = async () => {
+            if(!userId || userId === "undefined") { window.location.href = "index.html"; return; }
+            fetchProfile();
+        };
+
+        async function fetchProfile() {
+            try {
+                const res = await fetch(`${API_BASE}/user/details/${userId}`);
+                if (!res.ok) throw new Error("Fetch failed");
+                const data = await res.json();
+                
+                document.getElementById('userName').innerText = data.full_name || data.username || "User";
+                document.getElementById('sideName').innerText = data.full_name || data.username || "User";
+                document.getElementById('cashBal').innerText = data.wallet_balance || 0;
+                document.getElementById('earnBal').innerText = data.earning_balance || 0;
+
+                currentWinningBal = data.earning_balance || 0;
+                kycStatus = data.kyc_status;
+
+                document.getElementById('profUser').innerText = data.username || "N/A";
+                document.getElementById('profMob').innerText = data.mobile_no || "N/A";
+                document.getElementById('profDate').innerText = data.created_at ? new Date(data.created_at).toLocaleDateString() : "--";
+
+                const kycContainer = document.getElementById('kycStatusContainer');
+                if (kycStatus === 'approved') {
+                    kycContainer.innerHTML = `<div class="kyc-status-box kyc-approved"><i class="fas fa-check-circle"></i> <b>KYC Verified!</b></div>`;
+                } else if (kycStatus === 'pending') {
+                    kycContainer.innerHTML = `<div class="kyc-status-box kyc-pending"><i class="fas fa-clock"></i> <b>KYC Under Review</b></div>`;
+                } else {
+                    kycContainer.innerHTML = `<button class="game-btn" onclick="location.href='kyc.html'">Update KYC / Bank Details</button>`;
+                }
+            } catch (err) { setTimeout(fetchProfile, 5000); }
+        }
+
+        function openWithdrawModal() {
+            if(kycStatus !== 'approved') { alert("KYC approve karwana zaroori hai. Profile section mein KYC update karein!"); return; }
+            document.getElementById('popWinBal').innerText = currentWinningBal;
+            document.getElementById('withdrawModal').style.display = 'flex';
+        }
+
+        function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
+
+        async function proceedWithdraw() {
+            const amount = parseFloat(document.getElementById('withAmt').value);
+            if(!amount || amount < 100) { alert("Min withdrawal ₹100"); return; }
+            if(amount > currentWinningBal) { alert("Insufficient Winning Balance!"); return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/withdraw/request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: parseInt(userId), amount: amount })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('withdrawModal').style.display = 'none';
+                    document.getElementById('successAmt').innerText = amount;
+                    document.getElementById('successPopup').style.display = 'flex';
+                } else { alert(data.error || "Error"); }
+            } catch (err) { alert("Connection failed!"); }
+        }
+
+        async function fetchGameHistory() {
+            try {
+                const res = await fetch(`${API_BASE}/user/game-history/${userId}`);
+                const data = await res.json();
+                document.getElementById('gameList').innerHTML = data.map(g => `
+                    <div class="history-card">
+                        <div class="history-row"><span>Battle #${g.id}</span> <span>${new Date(g.created_at).toLocaleDateString()}</span></div>
+                        <div class="history-row"><span>Amount: ₹${g.amount}</span> <span class="${g.winner_id == userId ? 'status-win' : 'status-lost'}">${g.winner_id == userId ? 'WON' : 'LOST'}</span></div>
+                    </div>
+                `).join('') || '<p>No games played yet.</p>';
+            } catch(e) {}
+        }
+
+        async function fetchTransactions() {
+            try {
+                const res = await fetch(`${API_BASE}/user/transactions/${userId}`);
+                const data = await res.json();
+                document.getElementById('transList').innerHTML = data.map(t => `
+                    <div class="history-card" style="border-left-color: ${t.type === 'deposit' ? 'var(--green)' : 'var(--primary)'}">
+                        <div class="history-row"><b>${t.type === 'deposit' ? 'DEPOSIT' : 'WITHDRAWAL'}</b> <span>${new Date(t.created_at).toLocaleDateString()}</span></div>
+                        <div class="history-row"><span>₹${parseFloat(t.amount).toFixed(2)}</span> <span>${t.status.toUpperCase()}</span></div>
+                    </div>
+                `).join('') || '<p>No transactions found.</p>';
+            } catch (err) {}
+        }
+
+        function logout() { localStorage.clear(); window.location.href = "index.html"; }
+    </script>
+</body>
+</html>

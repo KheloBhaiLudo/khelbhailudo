@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Admin - AutoTech Solutions</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root { --admin-red: #d32f2f; --admin-dark: #1e293b; --bg: #f1f5f9; --green: #22c55e; --accent: #ffd700; --secondary: #3b82f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--bg); color: #333; overflow-x: hidden; }
+
+        .mobile-header { display: none; width: 100%; background: var(--admin-dark); color: white; padding: 15px; position: fixed; top: 0; z-index: 1001; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+
+        .sidebar { width: 260px; height: 100vh; background: var(--admin-dark); color: white; position: fixed; display: flex; flex-direction: column; transition: 0.3s; z-index: 1000; }
+        .sidebar-brand { padding: 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #334155; text-align: center; color: var(--admin-red); }
+        .nav-item { padding: 15px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.3s; color: #cbd5e1; text-decoration: none; }
+        .nav-item:hover, .nav-item.active { background: var(--admin-red); color: white; }
+        .nav-logout { margin-top: auto; border-top: 1px solid #334155; color: #fb7185; }
+
+        .main { margin-left: 260px; width: calc(100% - 260px); padding: 25px; transition: 0.3s; box-sizing: border-box; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); border-bottom: 3px solid var(--admin-red); }
+        .stat-card h3 { margin: 0; font-size: 28px; }
+        .stat-card p { margin: 5px 0 0; color: #64748b; font-weight: 600; }
+
+        .content-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; overflow-x: auto; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 800px; }
+        th { text-align: left; background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; margin: 2px; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        th, td { min-width: 100px; text-align: center; }
+        .ss-img { width: 80px; height: auto; min-height: 50px; cursor: pointer; }
+
+        @media (max-width: 768px) {
+            .mobile-header { display: flex; width: 100%; background: var(--admin-dark); height: 60px; position: fixed; top: 0; left: 0; z-index: 1001; justify-content: space-between; align-items: center; padding: 0 15px; box-sizing: border-box; }
+            .sidebar { left: -260px; }
+            .sidebar.active { left: 0; }
+            .main { margin-left: 0; width: 100%; padding: 80px 15px 20px; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        .overlay.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-header">
+        <i class="fas fa-bars fa-lg" onclick="toggleSidebar()"></i>
+        <span style="font-weight: bold; font-size: 18px;">Ludo Master Admin</span>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="adminSidebar">
+        <div class="sidebar-brand">Ludo Master</div>
+        <div class="nav-item active" id="nav-stats" onclick="showSection('stats')"><i class="fas fa-chart-line"></i> Dashboard</div>
+        <div class="nav-item" id="nav-battles" onclick="showSection('battles')"><i class="fas fa-gamepad"></i> Verify Results</div>
+        <div class="nav-item" id="nav-kyc" onclick="showSection('kyc')"><i class="fas fa-id-card"></i> KYC Approvals</div>
+        <div class="nav-item" id="nav-withdrawals" onclick="showSection('withdrawals')"><i class="fas fa-university"></i> Withdrawals</div>
+        <div class="nav-item" id="nav-notifications" onclick="showSection('notifications')"><i class="fas fa-bell"></i> Push Notification</div>
+        <div class="nav-item" id="nav-users" onclick="showSection('users')"><i class="fas fa-users"></i> All Users</div>
+        <div class="nav-item nav-logout" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+    </div>
+
+    <div class="main">
+        <div id="section-stats">
+            <div class="stats-grid">
+                <div class="stat-card" onclick="showSection('users')">
+                    <h3 id="statTotalUsers">0</h3>
+                    <p>Total Registered Users</p>
+                </div>
+                <div class="stat-card" onclick="showSection('battles')">
+                    <h3 id="statPendingBattles">0</h3>
+                    <p>Pending Game Results</p>
+                </div>
+                <div class="stat-card" onclick="showSection('withdrawals')">
+                    <h3 id="statPendingWithdraw">0</h3>
+                    <p>Pending Withdrawals</p>
+                </div>
+                <div class="stat-card" onclick="showSection('kyc')">
+                    <h3 id="statPendingKyc">0</h3>
+                    <p>Pending KYC Approvals</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-battles" class="content-card" style="display:none;">
+            <h3>Verify Game Results</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>ID</th><th>Players</th><th>Amount</th><th>Proof</th><th>User Claim</th><th>Action</th></tr></thead>
+                    <tbody id="battleListBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-kyc" class="content-card" style="display:none;">
+            <h3>Pending KYC Approvals</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User & WA</th>
+                            <th>Bank Details</th>
+                            <th>Aadhar (F/B)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingKycBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-withdrawals" class="content-card" style="display:none;">
+            <h3>Withdrawals</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>User</th><th>Details</th><th>Amount</th><th>Action</th></tr></thead>
+                    <tbody id="withdrawBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-notifications" class="content-card" style="display:none;">
+            <h3>Push New Notification to Users</h3>
+            <div style="max-width: 100%; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Notification Title</label>
+                    <input type="text" id="notifTitle" placeholder="E.g., Mega Tournament Alert! 🏆" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Message Text</label>
+                    <textarea id="notifMessage" rows="3" placeholder="Apna message yahan likhein..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-family:inherit;"></textarea>
+                </div>
+                <button class="btn btn-success" onclick="sendNotification()" style="width: 100%; padding: 12px; font-size: 14px;">
+                    <i class="fas fa-paper-plane"></i> Broadcast Notification
+                </button>
+            </div>
+
+            <h3>Sent Notifications History</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Title</th>
+                            <th>Message</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminNotifHistoryBody">
+                        <tr><td colspan="4" align="center">Loading history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-users" class="content-card" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3>User Directory & Verification</h3>
+                <button class="btn btn-primary" onclick="loadAdminUsers()"><i class="fas fa-sync"></i> Refresh List</button>
+            </div>
+            
+            <div class="table-responsive">
+                <table style="width:100%; border-collapse: collapse; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+                    <thead>
+                        <tr style="background:#f1f5f9; color:#1e293b; text-align:left;">
+                            <th style="padding:12px 15px;">ID</th>
+                            <th style="padding:12px 15px;">Name</th>
+                            <th style="padding:12px 15px;">Mobile</th>
+                            <th style="padding:12px 15px;">Balance</th>
+                            <th style="padding:12px 15px;">Status</th>
+                            <th style="padding:12px 15px;">Documents</th>
+                            <th style="padding:12px 15px; text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminUserTableBody">
+                        <tr><td colspan="7" align="center" style="padding:20px; color:#64748b;">Loading active users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="documentModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center; padding:20px;">
+            <div style="background:#fff; padding:25px; border-radius:12px; max-width:600px; width:100%; position:relative; box-shadow:0 10px 25px rgba(0,0,0,0.3); color:#333;">
+                <span onclick="closeDocModal()" style="position:absolute; top:15px; right:20px; font-size:24px; cursor:pointer; color:#64748b; font-weight:bold;">&times;</span>
+                <h4 style="margin-top:0; border-bottom:1px solid #e2e8f0; padding-bottom:10px; color:#1e293b;"><i class="fas fa-id-card"></i> Submitted KYC Documents</h4>
+                
+                <div style="display:flex; gap:15px; margin-top:15px; justify-content:center; align-items:center; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:200px; text-align:center;">
+                        <p style="font-weight:bold; font-size:12px; margin-bottom:5px; color:#64748b;">Aadhar Front</p>
+                        <img id="modalAadharFront" src="" alt="Not Uploaded" style="width:100%; max-height:180px; object-fit:contain; border:1px solid #e2e8f0; border-radius:6px; background:#f8fafc;">
+                    </div>
+                    <div style="flex:1; min-width:200px; text-align:center;">
+                        <p style="font-weight:bold; font-size:12px; margin-bottom:5px; color:#64748b;">Aadhar Back</p>
+                        <img id="modalAadharBack" src="" alt="Not Uploaded" style="width:100%; max-height:180px; object-fit:contain; border:1px solid #e2e8f0; border-radius:6px; background:#f8fafc;">
+                    </div>
+                </div>
+                <div id="modalActionContainer" style="margin-top:25px; display:flex; gap:10px; justify-content:flex-end;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = "https://khel-bhai-luso-backend-service.onrender.com";
+        const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+
+        function toggleSidebar() {
+            document.getElementById('adminSidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function showSection(id) {
+            const sections = ['stats', 'users', 'withdrawals', 'kyc', 'battles', 'notifications'];
+            sections.forEach(s => {
+                const el = document.getElementById('section-' + s);
+                if(el) el.style.display = 'none';
+            });
+            document.getElementById('section-' + id).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const nav = document.getElementById('nav-' + id);
+            if(nav) nav.classList.add('active');
+
+            if(id === 'kyc') loadPendingKyc();
+            if(id === 'withdrawals') loadPendingWithdrawals();
+            if(id === 'battles') loadBattles();
+            if(id === 'stats') updateStats();
+            if(id === 'notifications') loadAdminNotifications();
+            if(id === 'users') loadAdminUsers(); // FIXED: Removed loadAllUsers() here completely!
+        }
+
+        async function loadBattles() {
+            const body = document.getElementById('battleListBody');
+            try {
+                const res = await fetch(`${API_BASE}/admin/battles/pending-details`);
+                const data = await res.json();
+                body.innerHTML = data.length ? data.map(b => {
+                    const fullImg = b.screenshot_url ? b.screenshot_url.trim() : null;
+                    return `
+                    <tr>
+                        <td>#${b.id}</td>
+                        <td>${b.creator_name} vs ${b.joiner_name}</td>
+                        <td>₹${b.amount}</td>
+                        <td>
+                            ${fullImg ? `
+                                <div style="text-align:center;">
+                                    <a href="${fullImg}" target="_blank">
+                                        <img src="${fullImg}" class="ss-img" style="border:1px solid #ccc; width:60px; height:80px;" 
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <span style="display:none; color:blue; font-size:10px;">Click to View</span>
+                                    </a>
+                                </div>
+                            ` : `<span style="color:red; font-size:10px;">No Proof</span>`}
+                        </td>
+                        <td style="color:blue; font-weight:bold;">${b.result_status || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.creator_id})">Winner P1</button>
+                            <button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.joiner_id})">Winner P2</button>
+                        </td>
+                    </tr>`;
+                }).join('') : '<tr><td colspan="6" align="center">No pending results.</td></tr>';
+            } catch (e) { console.error("Battles Load Error:", e); }
+        }
+
+        async function approveWinner(battleId, winnerId) {
+            if(!confirm("Release payment?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/battles/verify-winner`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ battleId, winnerId })
+                });
+                if(res.ok) { alert("Released!"); loadBattles(); updateStats(); }
+            } catch (e) { alert("Server error."); }
+        }
+
+        async function updateStats() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/master-stats`);
+                if(!res.ok) throw new Error("Server Down");
+                const data = await res.json();
+                document.getElementById('statTotalUsers').innerText = data.totalUsers || 0;
+                document.getElementById('statPendingBattles').innerText = data.pendingBattles || 0;
+                document.getElementById('statPendingWithdraw').innerText = data.pendingWithdrawals || 0;
+                document.getElementById('statPendingKyc').innerText = data.pendingKyc || 0;
+            } catch (e) { 
+                console.log("Stats fetch failed, retrying in 5s..."); 
+                setTimeout(updateStats, 5000);
+            }
+        }
+
+        async function loadPendingKyc() {
+            const body = document.getElementById('pendingKycBody');
+            try {
+                const res = await fetch(`${API_BASE}/admin/pending-users`);
+                const users = await res.json();
+                body.innerHTML = users.length ? users.map(u => {
+                    const fImg = u.aadhar_front_url || "";
+                    const bImg = u.aadhar_back_url || "";
+                    return `
+                    <tr>
+                        <td style="text-align:left; font-size:12px;">
+                            <b>Name:</b> ${u.full_name || u.username}<br>
+                            <b>Mob:</b> ${u.mobile_no}<br>
+                            <b>WA:</b> ${u.whatsapp_no || 'N/A'}
+                        </td>
+                        <td style="font-size:11px; text-align:left; background: rgba(0,0,0,0.02);">
+                            <b>Acc:</b> ${u.bank_account_no || 'N/A'}<br>
+                            <b>IFSC:</b> ${u.ifsc_code || 'N/A'}<br>
+                            <b>UPI:</b> ${u.upi_id || 'N/A'}
+                        </td>
+                        <td>
+                            ${fImg ? `<img src="${fImg}" class="ss-img" style="width:50px; height:70px;" onclick="window.open(this.src)">` : "No Front"}
+                            ${bImg ? `<img src="${bImg}" class="ss-img" style="width:50px; height:70px;" onclick="window.open(this.src)">` : "No Back"}
+                        </td>
+                        <td>
+                            <button class="btn btn-success" onclick="approveUser(${u.id})">Approve</button>
+                            <button class="btn btn-danger" onclick="rejectUser(${u.id})">Reject</button>
+                        </td>
+                    </tr>`;
+                }).join('') : '<tr><td colspan="4" align="center">No pending KYC found.</td></tr>';
+            } catch (e) { body.innerHTML = '<tr><td colspan="4">Error loading KYC</td></tr>'; }
+        }
+
+        async function approveUser(userId) {
+            if(!confirm("Approve KYC?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/approve-kyc`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                if(res.ok) { alert("Approved!"); loadPendingKyc(); updateStats(); }
+            } catch (e) { alert("Connection failed!"); }
+        }
+
+        async function rejectUser(userId) {
+            const reason = prompt("Reject karne ka karan:");
+            if(!reason) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/reject-kyc`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, reason })
+                });
+                if(res.ok) { alert("Rejected!"); loadPendingKyc(); updateStats(); }
+            } catch (e) { alert("Action failed!"); }
+        }
+
+        async function loadPendingWithdrawals() {
+            const body = document.getElementById('withdrawBody');
+            body.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+            try {
+                const res = await fetch(`${API_BASE}/admin/withdrawals/pending`);
+                const data = await res.json();
+                body.innerHTML = data.length ? data.map(w => `
+                    <tr>
+                        <td style="text-align:left;"><b>${w.username}</b><br><small>${w.mobile_no}</small></td>
+                        <td style="text-align:left; font-size:11px;">UPI: ${w.upi_id || 'N/A'}<br>Bank: ${w.bank_account_no || 'N/A'}</td>
+                        <td>₹${w.amount}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="approveWithdraw(${w.id})">Approve</button>
+                            <button class="btn btn-danger" onclick="rejectWithdraw(${w.id})">Reject</button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="4" align="center">No pending withdrawals.</td></tr>';
+            } catch (e) { body.innerHTML = '<tr><td colspan="4">API Connection Error</td></tr>'; }
+        }
+
+        async function approveWithdraw(withdrawId) {
+            if(!confirm("Approve this withdrawal?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/withdrawals/approve`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ withdrawId })
+                });
+                if(res.ok) { alert("Approved!"); loadPendingWithdrawals(); updateStats(); }
+            } catch (e) { alert("Action failed"); }
+        }
+
+        async function rejectWithdraw(withdrawId) {
+            const reason = prompt("Reject karne ka karan (Paisa user ke wallet mein wapis chala jayega):");
+            if(!reason) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/withdrawals/reject`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ withdrawId, reason })
+                });
+                const result = await res.json();
+                if(result.success) { 
+                    alert("Rejected! Paisa user ko wapis bhej diya gaya hai."); 
+                    loadPendingWithdrawals(); 
+                    updateStats(); 
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (e) { alert("Action failed"); }
+        }
+
+        async function sendNotification() {
+            const title = document.getElementById('notifTitle').value.trim();
+            const message = document.getElementById('notifMessage').value.trim();
+
+            if(!title || !message) return alert("Kripya Title aur Message dono bharein!");
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/notifications/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert("Notification sabhi users ko bhej diya gaya hai! 🎉");
+                    document.getElementById('notifTitle').value = '';
+                    document.getElementById('notifMessage').value = '';
+                    loadAdminNotifications(); 
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (e) { alert("Server error, try again."); }
+        }
+
+        async function loadAdminNotifications() {
+            const body = document.getElementById('adminNotifHistoryBody');
+            if(!body) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/notifications`);
+                const data = await res.json();
+                
+                if(!data || data.length === 0) {
+                    body.innerHTML = '<tr><td colspan="4" align="center">Abhi tak koi notification nahi bheja gaya hai.</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = data.map(n => {
+                    const timeString = n.created_at ? new Date(n.created_at).toLocaleString() : '--';
+                    return `
+                        <tr>
+                            <td style="font-size:12px; color:#64748b;">${timeString}</td>
+                            <td style="font-weight:bold; text-align:left;">${n.title}</td>
+                            <td style="text-align:left; max-width:300px; word-break:break-word;">${n.message}</td>
+                            <td>
+                                <button class="btn btn-danger" style="padding:5px 10px; font-size:11px;" onclick="deleteNotification(${n.id})">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error("Admin Notif Load Error:", e);
+                body.innerHTML = '<tr><td colspan="4" align="center" style="color:red;">History load karne mein dikkat aayi.</td></tr>';
+            }
+        }
+
+        async function deleteNotification(id) {
+            if(!confirm("Kya aap is notification ko delete karna chahte hain? Users ko dikhna band ho jayega.")) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/admin/notifications/delete/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if(data.success) {
+                    alert("Notification successfully delete ho gaya!");
+                    loadAdminNotifications(); 
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (e) { alert("Server communication failed."); }
+        }
+
+// 1. Load All Registered Users (Approve Button Drops Strictly on isVerified Local Variable)
+async function loadAdminUsers() {
+    const body = document.getElementById('adminUserTableBody');
+    if (!body) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/users`);
+        const users = await res.json();
+
+        if (!users || !Array.isArray(users) || users.length === 0) {
+            body.innerHTML = '<tr><td colspan="7" align="center" style="padding:20px; color:#64748b;">No registered users found.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = users.map(user => {
+            // Absolute Strict Boolean Check: Handles true, 'TRUE', 'true', 1, or numeric values safely
+const isVerified = (
+    user.is_verified === true || 
+    user.is_verified === 'true' || 
+    user.is_verified === 'TRUE' || 
+    parseInt(user.is_verified) === 1
+);
+            
+            const statusText = isVerified ? 'VERIFIED' : 'PENDING APPROVAL';
+            const statusStyle = isVerified ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;';
+
+            const frontImg = user.aadhar_front_url || '';
+            const backImg = user.aadhar_back_url || '';
+            const hasDocs = frontImg !== '' && !frontImg.includes('undefined') && !frontImg.includes('null');
+
+            return `
+                <tr style="border-bottom: 1px solid #e2e8f0; background: ${isVerified ? '#f8fafc' : '#ffffff'};">
+                    <td style="padding:12px 15px; font-weight:600; color:#64748b;">#${user.id}</td>
+                    <td style="padding:12px 15px; font-weight:bold; color:#1e293b;">${user.username || 'Unknown'}</td>
+                    <td style="padding:12px 15px; color:#334155;">${user.mobile_no || '--'}</td>
+                    <td style="padding:12px 15px; font-weight:600; color:#059669;">₹${user.wallet_balance || 0}</td>
+                    <td style="padding:12px 15px;">
+                        <span style="font-size:11px; font-weight:bold; padding:4px 8px; border-radius:12px; ${statusStyle}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td style="padding:12px 15px;">
+                        <button class="btn" style="padding:5px 10px; font-size:12px; background:${hasDocs ? '#00d2ff' : '#cbd5e1'}; color:${hasDocs ? '#fff' : '#64748b'}; border:none; border-radius:4px; cursor:pointer;" 
+                                onclick="openDocModal(${user.id}, '${frontImg}', '${backImg}', '${statusText}')">
+                            <i class="fas fa-eye"></i> ${hasDocs ? 'View Docs' : 'No Docs'}
+                        </button>
+                    </td>
+                    <td style="padding:12px 15px; text-align:center; display:flex; gap:8px; justify-content:center; align-items:center;">
+                        ${!isVerified ? `
+                            <button class="btn btn-success" style="padding:6px 12px; font-size:11px; background:#22c55e; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="executeUserVerification(${user.id}, 'approve')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                        ` : `
+                            <span style="color:#15803d; font-size:11px; font-weight:bold; padding:6px 12px; background:rgba(34,197,94,0.1); border-radius:6px;"><i class="fas fa-user-check"></i> Verified</span>
+                        `}
+                        <button class="btn btn-danger" style="padding:6px 12px; font-size:11px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="deleteUserRequest(${user.id})">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("UI Render crash detected:", err);
+        body.innerHTML = '<tr><td colspan="7" align="center" style="padding:20px; color:red;">Data load failed.</td></tr>';
+    }
+}
+
+        // 2. FIXED: Click Handler with Confirmation Pop-up Box
+        async function executeUserVerification(userId, actionParam) {
+            // Confirmation box configuration check
+            if(!confirm("क्या aap is user account ko verify karna chahte hain? OK karne par ye login kar payega.")) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/admin/user/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, action: actionParam })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    loadAdminUsers(); // Instantly clears DOM data rows to drop the button!
+                    updateStats();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (e) { alert("Network interaction timeout."); }
+        }
+
+        function openDocModal(userId, frontSrc, backSrc, currentStatus) {
+            const modal = document.getElementById('documentModal');
+            const frontImg = document.getElementById('modalAadharFront');
+            const backImg = document.getElementById('modalAadharBack');
+
+            if (!modal || !frontImg || !backImg) {
+                alert("Error: Document modal HTML elements missing on page.");
+                return;
+            }
+
+            function verifyCloudUrl(src) {
+                if (!src || typeof src !== 'string') return null;
+                const cleanStr = src.trim().toLowerCase();
+                if (cleanStr === '' || cleanStr === 'null' || cleanStr === 'undefined' || cleanStr.includes('undefined') || cleanStr.includes('/uploads/null')) {
+                    return null;
+                }
+                return src.trim();
+            }
+
+            const finalFrontUrl = verifyCloudUrl(frontSrc);
+            const finalBackUrl = verifyCloudUrl(backSrc);
+
+            frontImg.src = finalFrontUrl ? finalFrontUrl : 'https://placehold.co/250x150?text=Aadhar+Front+Missing';
+            backImg.src = finalBackUrl ? finalBackUrl : 'https://placehold.co/250x150?text=Aadhar+Back+Missing';
+
+            frontImg.onerror = function() { this.src = 'https://placehold.co/250x150?text=Image+Load+Failed'; };
+            backImg.onerror = function() { this.src = 'https://placehold.co/250x150?text=Image+Load+Failed'; };
+
+            modal.style.display = 'flex';
+        }
+
+        function closeDocModal() {
+            const modal = document.getElementById('documentModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function deleteUserRequest(id) {
+            if(!confirm("Kya aap sach me is user account / request ko permanently delete karna chahte hain? Ye data vapas nahi aayega.")) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/admin/user/delete/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if(data.success) {
+                    alert("User request database se completely remove kar di gayi hai!");
+                    loadAdminUsers();
+                    updateStats();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (e) { alert("Failed to communicate deletion sequence."); }
+        }
+
+        function adminLogout() { localStorage.removeItem('admin_logged_in'); window.location.href = "index.html"; }
+
+        window.onload = () => {
+            if (localStorage.getItem('admin_logged_in') !== 'true') {
+                const p = prompt("Admin Pass:");
+                if(p === "Praveen@123") localStorage.setItem('admin_logged_in', 'true');
+                else window.location.href = "index.html";
+            }
+            updateStats();
+        };
+    </script>
+</body>
+</html>

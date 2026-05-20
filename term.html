@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms & Conditions - Ludo King</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; }
+        .terms-box { background: #2c2c2c; padding: 20px; border-radius: 15px; max-height: 70vh; overflow-y: auto; border: 1px solid #444; }
+        h2 { color: #ffd700; text-align: center; }
+        p { font-size: 14px; line-height: 1.6; color: #ccc; }
+        .rules-list { padding-left: 20px; }
+        .rules-list li { margin-bottom: 10px; font-size: 14px; }
+        .sticky-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #1a1a1a; padding: 20px; box-sizing: border-box; border-top: 1px solid #333; }
+        .checkbox-container { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; }
+        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .btn-go { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; opacity: 0.5; }
+        .btn-go.active { opacity: 1; background: #28a745; }
+        @media (max-width: 480px) {
+    body {
+        padding: 15px;
+    }
+    h2 {
+        font-size: 20px;
+    }
+    .terms-box {
+        padding: 15px;
+        font-size: 13px;
+    }
+    .btn-go {
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+    </style>
+</head>
+<body>
+
+    <h2>Tournament Rules</h2>
+
+    <div class="terms-box">
+        <ul class="rules-list">
+            <li>Game start hone ke baad Room Code enter karna anivarya hai.</li>
+            <li>Galat screenshot upload karne par ₹100 penalty lagegi aur account ban ho sakta hai.</li>
+            <li>Match cancel karne ke liye dono players ki sahmati zaroori hai.</li>
+            <li>Winning amount KYC complete hone ke baad hi withdraw hoga.</li>
+            <li>Admin ka faisla antim (final) hoga. Kisi bhi vivad mein admin hi nirnay lega.</li>
+            <li>Internet connection ki zimmedari player ki hogi.</li>
+        </ul>
+        <p><strong>Disclaimer:</strong> Yeh ek real-money game hai. Ismein vittiya jokhim (financial risk) shamil hai. Kripya apni zimmedari par khelrein. Hum kisi bhi nuksan ke liye utardayi nahi hain.</p>
+    </div>
+
+    <div class="sticky-footer">
+        <div class="checkbox-container">
+            <input type="checkbox" id="acceptCheck" onclick="toggleBtn()">
+            <label for="acceptCheck">Main sabhi niyam aur sharto ko dhyan se padh liya hai aur mujhe ye manzoor hain.</label>
+        </div>
+        <button id="goBtn" class="btn-go" disabled onclick="acceptTerms()">Go to Battleground</button>
+    </div>
+
+<script>
+    function toggleBtn() {
+        const check = document.getElementById('acceptCheck');
+        const btn = document.getElementById('goBtn');
+        btn.disabled = !check.checked;
+        btn.className = check.checked ? "btn-go active" : "btn-go";
+    }
+
+    async function acceptTerms() {
+        const userId = localStorage.getItem('userId'); // Login ke waqt save kiya gaya ID
+        
+        try {
+            const res = await fetch('/api/accept-terms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            const result = await res.json();
+            if(result.success) {
+                window.location.href = "/dashboard.html";
+            }
+        } catch (err) {
+            alert("Error: Settings save nahi ho payi.");
+        }
+    }
+</script>
+
+</body>
+</html>

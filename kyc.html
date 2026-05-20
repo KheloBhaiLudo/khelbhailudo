@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Complete KYC - Ludo Empire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00d2ff; --secondary: #3a7bd5; --dark: #0f172a; --accent: #ffd700; --card-bg: #1e293b; --green: #22c55e; }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: radial-gradient(circle at top, #1e293b, #0f172a); 
+            color: white; 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh;
+        }
+
+        .back-btn { color: white; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; cursor: pointer; }
+
+        .kyc-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        .header-box { text-align: center; margin-bottom: 25px; }
+        .header-box i { font-size: 40px; color: var(--accent); margin-bottom: 10px; }
+        .header-box h2 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+        .header-box p { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+
+        .input-group { margin-bottom: 18px; position: relative; }
+        .input-group label { display: block; font-size: 12px; color: var(--primary); margin-bottom: 8px; font-weight: 500; }
+        .input-group i { position: absolute; left: 15px; bottom: 13px; color: #64748b; }
+        
+        input {
+            width: 100%;
+            padding: 12px 12px 12px 42px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, var(--secondary), var(--primary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(58, 123, 213, 0.4);
+            transition: 0.3s;
+        }
+
+        .btn-submit:active { transform: scale(0.98); }
+
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 11px;
+            color: #ffd700;
+            display: flex;
+            gap: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="back-btn" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i> Dashboard wapis jayein
+    </div>
+
+    <div class="kyc-card">
+        <div class="header-box">
+            <i class="fas fa-id-card"></i>
+            <h2>Complete Your KYC</h2>
+            <p>Withdrawal ke liye bank details bharna anivarya hai</p>
+        </div>
+
+        <div class="input-group">
+            <label>BANK ACCOUNT NUMBER</label>
+            <i class="fas fa-university"></i>
+            <input type="number" id="bankAcc" placeholder="Account Number daalein">
+        </div>
+
+        <div class="input-group">
+            <label>IFSC CODE</label>
+            <i class="fas fa-code-branch"></i>
+            <input type="text" id="ifsc" placeholder="E.g. SBIN0001234" style="text-transform: uppercase;">
+        </div>
+
+        <div class="input-group">
+            <label>UPI ID (FOR FAST PAYOUT)</label>
+            <i class="fas fa-mobile-alt"></i>
+            <input type="text" id="upiId" placeholder="username@upi">
+        </div>
+
+        <div class="input-group">
+            <label>WHATSAPP NUMBER</label>
+            <i class="fab fa-whatsapp"></i>
+            <input type="number" id="whatsapp" placeholder="91XXXXXXXXXX">
+        </div>
+
+        <button class="btn-submit" onclick="submitKYC()">SUBMIT DETAILS</button>
+
+        <div class="info-box">
+            <i class="fas fa-shield-alt" style="font-size: 18px;"></i>
+            <div>+18 saal se uper umar waale log hi registered karein.</div>
+            <div>Galat details bharne par withdrawal reject ho sakta hai.</div>
+
+        </div>
+    </div>
+
+    <script>
+        async function submitKYC() {
+    const userId = localStorage.getItem('userId');
+    const bankAcc = document.getElementById('bankAcc').value;
+    const ifsc = document.getElementById('ifsc').value;
+    const upiId = document.getElementById('upiId').value;
+    const whatsapp = document.getElementById('whatsapp').value;
+
+    if(!bankAcc || !ifsc || !whatsapp) {
+        return alert("Please fill all mandatory fields!");
+    }
+
+    // Button ko disable karein taaki double click na ho
+    const btn = document.querySelector('.btn-submit');
+    btn.innerText = "Submitting...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/user/submit-kyc', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId, bankAcc, ifsc, upiId, whatsapp })
+        });
+
+        const data = await res.json();
+        if(data.success) {
+            alert("KYC details submitted! Admin will verify soon.");
+            window.location.href = "/dashboard.html"; // Redirect to dashboard
+        } else {
+            alert("Error: " + data.message);
+            btn.innerText = "SUBMIT DETAILS";
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert("Server error, try again.");
+        btn.innerText = "SUBMIT DETAILS";
+        btn.disabled = false;
+    }
+}
+    </script>
+</body>
+</html>

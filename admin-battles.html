@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Battle Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        h2 { color: #333; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; }
+        
+        .battle-card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-left: 5px solid #ffc107; }
+        .battle-info { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        .screenshot-preview { width: 150px; height: 250px; object-fit: contain; background: #eee; border: 1px solid #ddd; cursor: pointer; }
+        .btn-group { margin-top: 15px; display: flex; gap: 10px; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-approve { background: #28a745; color: white; }
+        .btn-reject { background: #dc3545; color: white; }
+        .btn-view { background: #007bff; color: white; }
+        
+        .status-tag { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status-pending { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+
+    <h2><i class="fas fa-gamepad"></i> Battle Verification Panel</h2>
+
+    <div id="adminBattleContainer">
+        <p>Loading pending battles...</p>
+    </div>
+
+    <script>
+        window.onload = fetchPendingBattles;
+
+        async function fetchPendingBattles() {
+            const res = await fetch('/api/admin/battles/pending');
+            const battles = await res.json();
+            const container = document.getElementById('adminBattleContainer');
+            container.innerHTML = '';
+
+            if(battles.length === 0) {
+                container.innerHTML = '<div class="battle-card">Sab saaf hai! Koi pending battle nahi hai.</div>';
+                return;
+            }
+
+            battles.forEach(battle => {
+                container.innerHTML += `
+                    <div class="battle-card">
+                        <div class="battle-info">
+                            <div>
+                                <strong>ID: #${battle.id}</strong> | Amount: <span style="color:green">₹${battle.amount}</span><br>
+                                <small>Room Code: ${battle.room_code || 'N/A'}</small>
+                            </div>
+                            <span class="status-tag status-pending">PENDING</span>
+                        </div>
+                        
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div>
+                                <p><b>Creator (P1):</b> ${battle.creator_name} <br>Status: ${battle.creator_claim || 'Waiting'}</p>
+                                <p><b>Joiner (P2):</b> ${battle.joiner_name} <br>Status: ${battle.joiner_claim || 'Waiting'}</p>
+                            </div>
+                            
+                            ${battle.screenshot_url ? `
+                                <div>
+                                    <p>Winning Proof:</p>
+                                    <img src="${battle.screenshot_url}" class="screenshot-preview" onclick="window.open('${battle.screenshot_url}')">
+                                </div>
+                            ` : '<p>No screenshot uploaded</p>'}
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-approve" onclick="verifyWinner(${battle.id}, ${battle.creator_id}, ${battle.amount})">Approve Creator (P1)</button>
+                            <button class="btn btn-approve" onclick="verifyWinner(${battle.id}, ${battle.joiner_id}, ${battle.amount})">Approve Joiner (P2)</button>
+                            <button class="btn btn-reject" onclick="cancelBattle(${battle.id})">Cancel & Refund</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function verifyWinner(battleId, winnerId, amount) {
+            if(!confirm("Kya aap sure hain? Winner ke account mein paise transfer ho jayenge.")) return;
+            
+            const res = await fetch('/api/admin/battles/verify-winner', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ battleId, winnerId, amount })
+            });
+            const result = await res.json();
+            if(result.success) {
+                alert("Winner Approved! Amount credited.");
+                fetchPendingBattles();
+            }
+        }
+
+        async function cancelBattle(battleId) {
+            if(!confirm("Match cancel karke dono ko refund dena chahte hain?")) return;
+            // Refund logic backend par handle hoga
+            alert("Match Cancelled logic pending.");
+        }
+    </script>
+</body>
+</html>

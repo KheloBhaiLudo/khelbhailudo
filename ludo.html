@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ludo Battles - Ludo King</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00d2ff; --dark: #0f172a; --card-bg: #1e293b; --accent: #ffd700; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 15px; }
+        
+        /* Top Wallet Bar */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 12px; border-radius: 10px; margin-bottom: 20px; }
+        .token-box { background: #0f172a; padding: 5px 15px; border-radius: 8px; border: 1px solid var(--primary); }
+
+        /* Set Battle Amount Section */
+        .set-battle { background: var(--card-bg); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid #334155; margin-bottom: 20px; }
+        .set-battle input { width: 70%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0f172a; color: white; font-size: 18px; text-align: center; }
+        .btn-set { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; width: 100%; }
+
+        /* Battle List */
+        .battle-list-title { font-size: 18px; margin-bottom: 10px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .battle-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--accent); }
+        .player-info { display: flex; align-items: center; gap: 10px; }
+        .player-img { width: 35px; height: 35px; background: #334155; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        
+        .amount-tag { font-weight: bold; color: var(--accent); font-size: 18px; }
+        .btn-play { background: #22c55e; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="history.back()" style="cursor: pointer;"><i class="fas fa-arrow-left"></i> Back</div>
+        <div class="token-box">
+            <span style="font-size: 12px; color: #94a3b8;">My Tokens:</span>
+            <span id="myTokens" style="font-weight: bold; color: var(--accent);">Loading...</span>
+        </div>
+    </div>
+
+    <div class="set-battle">
+        <h3 style="margin-top: 0;">Create a Challenge</h3>
+        <input type="number" id="battleAmount" placeholder="Enter Amount (e.g. 100)" min="10">
+        <button class="btn-set" id="createBtn" onclick="createChallenge()">SET CHALLENGE</button>
+    </div>
+
+    <div class="battle-list-title">
+        <i class="fas fa-gamepad"></i> Open Challenges
+    </div>
+
+    <div id="battleContainer">
+        <div style="text-align: center; color: #64748b; padding: 20px;">Searching for players...</div>
+    </div>
+
+    <script>
+        const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+        const userId = localStorage.getItem('userId');
+        let pollingInterval = null;
+
+        window.onload = () => {
+            if(!userId || userId === "undefined") {
+                window.location.href = "index.html";
+                return;
+            }
+            fetchProfile();
+            fetchBattles();
+            setInterval(fetchBattles, 5000); // Har 5 sec mein battles list refresh
+        };
+
+        async function fetchProfile() {
+            try {
+                // FIXED: Backend route changed to /user/details to match server.js
+                const res = await fetch(`${API_BASE}/user/details/${userId}`);
+                const data = await res.json();
+                document.getElementById('myTokens').innerText = data.wallet_balance ?? 0;
+            } catch (err) {
+                console.error("Profile Error:", err);
+                document.getElementById('myTokens').innerText = "0";
+            }
+        }
+
+        async function createChallenge() {
+            const amount = document.getElementById('battleAmount').value;
+            const balance = parseFloat(document.getElementById('myTokens').innerText);
+            const btn = document.getElementById('createBtn');
+
+            if(!amount || amount < 10) return alert("Min. challenge amount ₹10 hai.");
+            if(parseFloat(amount) > balance) return alert("Aapke paas paryapt tokens nahi hain!");
+
+            try {
+                btn.disabled = true;
+                btn.innerText = "Setting...";
+
+                const res = await fetch(`${API_BASE}/battles/create`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ userId, amount })
+                });
+                
+                const result = await res.json();
+                if(result.success) {
+                    alert("Challenge set! Intezar karein, jaise hi koi join karega aap redirect ho jayenge.");
+                    fetchBattles();
+                    startStatusCheck(result.battleId);
+                }
+            } catch (err) {
+                alert("Challenge set nahi ho paya.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "SET CHALLENGE";
+            }
+        }
+
+        function startStatusCheck(battleId) {
+            if(!battleId) return;
+            if(pollingInterval) clearInterval(pollingInterval);
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/battles/status/${battleId}`);
+                    const data = await res.json();
+
+                    if(data.status === 'joined') {
+                        clearInterval(pollingInterval);
+                        window.location.href = `battle-ground.html?id=${battleId}`;
+                    }
+                } catch (err) { console.log("Polling..."); }
+            }, 3000);
+        }
+
+        async function fetchBattles() {
+            try {
+                const res = await fetch(`${API_BASE}/battles/list`);
+                const battles = await res.json();
+                const container = document.getElementById('battleContainer');
+                
+                if(!battles || battles.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; color:#64748b;">No active challenges. Create one!</div>';
+                    return;
+                }
+
+                container.innerHTML = battles.map(battle => {
+                    const isMyBattle = battle.creator_id == userId;
+                    return `
+                        <div class="battle-card">
+                            <div class="player-info">
+                                <div class="player-img"><i class="fas fa-user"></i></div>
+                                <div>
+                                    <div style="font-size: 13px; font-weight: bold;">${battle.username}</div>
+                                    <div style="font-size: 11px; color: #94a3b8;">${isMyBattle ? 'Wait for joiner...' : 'Waiting for match...'}</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="amount-tag">₹${battle.amount}</div>
+                                <button class="btn-play" ${isMyBattle ? 'disabled style="background:#444; opacity:0.6;"' : ''} 
+                                    onclick="joinBattle(${battle.id}, ${battle.amount})">
+                                    ${isMyBattle ? 'WAITING' : 'PLAY'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) { console.error("Fetch Battles Error:", err); }
+        }
+
+        async function joinBattle(battleId, amount) {
+            const balance = parseFloat(document.getElementById('myTokens').innerText);
+            if(amount > balance) return alert("Pehle cash add karein!");
+
+            if(confirm(`Kya aap ₹${amount} ki battle join karna chahte hain?`)) {
+                try {
+                    const res = await fetch(`${API_BASE}/battles/join`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ userId, battleId })
+                    });
+                    const result = await res.json();
+                    if(result.success) {
+                        window.location.href = `battle-ground.html?id=${battleId}`;
+                    } else {
+                        alert(result.error || "Join fail!");
+                    }
+                } catch (e) { alert("Server error!"); }
+            }
+        }
+    </script>
+</body>
+</html>

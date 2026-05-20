@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Admin - AutoTech Solutions</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root { --admin-red: #d32f2f; --admin-dark: #1e293b; --bg: #f1f5f9; --green: #22c55e; --accent: #ffd700; --secondary: #3b82f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--bg); color: #333; overflow-x: hidden; }
+
+        /* Mobile Header */
+        .mobile-header { 
+            display: none; width: 100%; background: var(--admin-dark); color: white; 
+            padding: 15px; position: fixed; top: 0; z-index: 1001; justify-content: space-between; align-items: center; 
+        }
+
+        /* Sidebar */
+        .sidebar { width: 260px; height: 100vh; background: var(--admin-dark); color: white; position: fixed; display: flex; flex-direction: column; transition: 0.3s; z-index: 1000; }
+        .sidebar-brand { padding: 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #334155; text-align: center; color: var(--admin-red); }
+        .nav-item { padding: 15px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.3s; color: #cbd5e1; text-decoration: none; }
+        .nav-item:hover, .nav-item.active { background: var(--admin-red); color: white; }
+        .nav-logout { margin-top: auto; border-top: 1px solid #334155; color: #fb7185; }
+
+        /* Main Content */
+        .main { margin-left: 260px; width: calc(100% - 260px); padding: 25px; transition: 0.3s; box-sizing: border-box; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); border-bottom: 3px solid var(--admin-red); }
+        .stat-card h3 { margin: 0; font-size: 28px; }
+        .stat-card p { margin: 5px 0 0; color: #64748b; font-weight: 600; }
+
+        .content-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; overflow-x: auto; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
+        th { text-align: left; background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-pdf { background: #0f172a; color: white; }
+        .ss-img { width: 60px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; }
+        
+        .search-box { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; font-size: 14px; box-sizing: border-box; }
+        .section-title { font-size: 18px; font-weight: bold; margin: 20px 0 10px; display: flex; align-items: center; gap: 10px; }
+
+        @media (max-width: 768px) {
+            .mobile-header { display: flex; }
+            .sidebar { left: -260px; }
+            .sidebar.active { left: 0; }
+            .main { margin-left: 0; width: 100%; padding: 80px 15px 20px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 15px; }
+            .sidebar-brand { display: none; }
+            .nav-item { padding: 18px 20px; font-size: 16px; }
+        }
+
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        .overlay.active { display: block; }
+        /* Mobile Header Fix */
+@media (max-width: 768px) {
+    .mobile-header { 
+        display: flex; 
+        width: 100%; 
+        background: var(--admin-dark); 
+        color: white; 
+        padding: 0 15px;      /* Side padding */
+        height: 60px;         /* Fixed height for stability */
+        position: fixed; 
+        top: 0; 
+        left: 0;
+        z-index: 1001; 
+        justify-content: space-between; 
+        align-items: center;  /* Vertical center alignment */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        box-sizing: border-box;
+    }
+
+    .mobile-header span {
+        font-size: 16px;      /* Standard mobile font size */
+        white-space: nowrap;  /* Text line break na ho */
+        margin-left: 10px;    /* Icon se thodi doori */
+        line-height: 60px;    /* Height ke barabar center karne ke liye */
+    }
+
+    /* Main content ko header ke peeche chhupne se bachane ke liye */
+    .main { 
+        margin-left: 0; 
+        width: 100%; 
+        padding: 80px 15px 20px; /* Top padding header ki height se zyada */
+    }
+}
+    </style>
+</head>
+<body>
+
+    <div class="mobile-header">
+        <i class="fas fa-bars fa-lg" onclick="toggleSidebar()"></i>
+        <span style="font-weight: bold; font-size: 18px; color: var(--admin-red);">Ludo Master Admin</span>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="adminSidebar">
+        <div class="sidebar-brand">Ludo Master</div>
+        <div class="nav-item" id="nav-stats" onclick="showSection('stats')"><i class="fas fa-chart-line"></i> Dashboard</div>
+        <div class="nav-item" id="nav-users" onclick="showSection('users')"><i class="fas fa-users"></i> All Users</div>
+        <div class="nav-item" id="nav-battles" onclick="showSection('battles')"><i class="fas fa-gamepad"></i> Verify Battles</div>
+        <div class="nav-item" id="nav-withdrawals" onclick="showSection('withdrawals')"><i class="fas fa-university"></i> Withdrawals</div>
+        <div class="nav-item" id="nav-kyc" onclick="showSection('kyc')"><i class="fas fa-id-card"></i> KYC Approvals</div>
+        <div class="nav-item" id="nav-smtp" onclick="showSection('smtp')"><i class="fas fa-envelope"></i> SMTP Settings</div>
+        <div class="nav-item nav-logout" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+    </div>
+
+    <div class="main">
+        <div id="section-stats">
+            <div class="stats-grid">
+                <div class="stat-card" onclick="showSection('users')">
+                    <h3 id="statTotalUsers">0</h3>
+                    <p>Total Registered Users</p>
+                </div>
+                <div class="stat-card" onclick="showSection('withdrawals')">
+                    <h3 id="statPendingWithdraw">0</h3>
+                    <p>Pending Withdrawals</p>
+                </div>
+                <div class="stat-card" onclick="showSection('battles')">
+                    <h3 id="statActiveBattles">0</h3>
+                    <p>Pending Results</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-withdrawals" class="content-card" style="display:none;">
+            <div class="card-header">
+                <h3><i class="fas fa-clock"></i> Pending Withdrawal Requests</h3>
+                <span style="font-size: 12px; color: var(--admin-red);">* 5% Admin Commission Auto-Calculated</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr style="background: #fffbe6;">
+                            <th>User Details</th>
+                            <th>Total Amount</th>
+                            <th>Admin Comm (5%)</th>
+                            <th>Final Pay (User)</th>
+                            <th>Payout Mode</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawBody"></tbody>
+                </table>
+            </div>
+
+            <hr style="margin: 40px 0; border: 0; border-top: 2px dashed #ccc;">
+            <div class="card-header">
+                <h3><i class="fas fa-history"></i> Withdrawal History (Latest 100)</h3>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th>Date & Time</th>
+                            <th>User Details</th>
+                            <th>Amount (Net)</th>
+                            <th>Status</th>
+                            <th>Remark / Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawHistoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-users" class="content-card" style="display:none;">
+            <div class="card-header">
+                <h3>User Directory</h3>
+                <button class="btn btn-pdf" onclick="exportUsersPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+            </div>
+            <div class="table-responsive">
+                <table id="userTable">
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Mobile</th><th>Wallet</th><th>Earnings</th></tr>
+                    </thead>
+                    <tbody id="userListBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-battles" class="content-card" style="display:none;">
+            <h3>Verify Game Results</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr><th>Game ID</th><th>P1 (Creator)</th><th>P2 (Joiner)</th><th>Amount</th><th>Proof</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="battleListBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-kyc" class="content-card" style="display:none;">
+            <div class="card-header"><h3>KYC Management Panel</h3></div>
+            <input type="text" id="kycSearch" class="search-box" onkeyup="filterKYC()" placeholder="Search by Name, Mobile or ID...">
+            <div class="section-title" style="color: var(--admin-red);"><i class="fas fa-user-clock"></i> Pending Requests</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr style="background: #fff5f5;">
+                            <th>User Details</th>
+                            <th>WhatsApp</th>
+                            <th>Payout Details</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingKycBody"></tbody>
+                </table>
+            </div>
+            <hr style="margin: 40px 0; border: 0; border-top: 2px dashed #eee;">
+            <div class="section-title" style="color: var(--green);"><i class="fas fa-check-double"></i> Approved Users</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr style="background: #f6ffed;">
+                            <th>User Details</th>
+                            <th>Payout Method</th>
+                            <th>Bank / UPI Details</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approvedKycBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-smtp" class="content-card" style="display:none;">
+            <h3>SMTP Configuration</h3>
+            <div style="background: #fdf2f2; padding: 15px; border-radius: 8px; border-left: 4px solid var(--admin-red); margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold;">Current SMTP Email: <span id="currentSmtpMail" style="color: var(--admin-red);">Loading...</span></p>
+            </div>
+            <button class="btn btn-success" onclick="location.href='/admin.html'">Advanced Settings</button>
+        </div>
+    </div>
+
+    <script>
+        if (localStorage.getItem('admin_logged_in') !== 'true') window.location.href = "/admin-login.html";
+
+        function toggleSidebar() {
+            document.getElementById('adminSidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function showSection(sectionId) {
+            const sections = ['stats', 'users', 'battles', 'withdrawals', 'kyc', 'smtp'];
+            sections.forEach(s => {
+                const el = document.getElementById('section-' + s);
+                if(el) el.style.display = 'none';
+            });
+            const target = document.getElementById('section-' + sectionId);
+            if(target) target.style.display = 'block';
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const nav = document.getElementById('nav-' + sectionId);
+            if(nav) nav.classList.add('active');
+
+            if(window.innerWidth <= 768) toggleSidebar();
+
+            if(sectionId === 'users') loadUsers();
+            if(sectionId === 'battles') loadBattles();
+            if(sectionId === 'kyc') loadKycData();
+            if(sectionId === 'withdrawals') loadWithdrawalSection(); // Updated
+            if(sectionId === 'smtp') loadSmtpStatus();
+        }
+
+        // --- WITHDRAWAL LOGIC (PENDING + HISTORY) ---
+        async function loadWithdrawalSection() {
+            loadPendingWithdrawals();
+            loadWithdrawalHistory();
+        }
+
+        async function loadPendingWithdrawals() {
+            const body = document.getElementById('withdrawBody');
+            try {
+                const res = await fetch('/api/admin/withdrawals/pending');
+                const data = await res.json();
+                
+                if (!data || data.length === 0) {
+                    body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No pending withdrawal requests.</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = data.map(w => {
+                    const total = parseFloat(w.amount);
+                    const comm = (total * 0.05).toFixed(2);
+                    const finalPay = (total - comm).toFixed(2);
+
+                    return `
+                        <tr>
+                            <td><b>${w.username}</b><br><small>ID: #${w.user_id}</small></td>
+                            <td style="color:var(--admin-red); font-weight:bold;">₹${total}</td>
+                            <td style="color:#64748b;">₹${comm}</td>
+                            <td style="color:var(--green); font-weight:bold;">₹${finalPay}</td>
+                            <td>
+                                <div style="font-size:11px; line-height:1.3;">
+                                    <b>Bank:</b> ${w.bank_account_no || 'N/A'}<br>
+                                    <b>UPI:</b> ${w.upi_id || 'N/A'}
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn btn-success" onclick="processWithdraw(${w.id}, 'paid')">Mark Paid</button>
+                                <button class="btn btn-danger" onclick="processWithdraw(${w.id}, 'rejected')">Reject</button>
+                            </td>
+                        </tr>`;
+                }).join('');
+            } catch (err) { body.innerHTML = '<tr><td colspan="6">Error loading pending requests.</td></tr>'; }
+        }
+
+        async function loadWithdrawalHistory() {
+    const historyBody = document.getElementById('withdrawHistoryBody');
+    
+    // Naya data aane tak loading show karega
+    historyBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px;">Loading history...</td></tr>';
+
+    try {
+        const res = await fetch('/api/admin/withdrawals/history');
+        if (!res.ok) throw new Error("HTTP Error: " + res.status);
+        
+        const data = await res.json();
+        
+        if (!data || data.length === 0) {
+            historyBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px;">No history available yet.</td></tr>';
+            return;
+        }
+
+        historyBody.innerHTML = data.map(w => {
+            const total = parseFloat(w.amount);
+            const net = (total * 0.95).toFixed(2);
+            const statusCol = w.status === 'paid' ? 'var(--green)' : 'var(--admin-red)';
+            
+            // Payment details agar available hon
+            const payoutDetails = w.upi_id && w.upi_id !== 'N/A' ? `UPI: ${w.upi_id}` : `A/C: ${w.bank_account_no || 'N/A'}`;
+
+            return `
+                <tr style="font-size: 13px; border-bottom: 1px solid #eee;">
+                    <td>
+                        <span style="font-weight:600;">${new Date(w.created_at).toLocaleDateString()}</span><br>
+                        <small style="color:#64748b;">${new Date(w.created_at).toLocaleTimeString()}</small>
+                    </td>
+                    <td>
+                        <b>${w.username}</b><br>
+                        <small style="color:#3b82f6;">ID: #${w.user_id}</small>
+                    </td>
+                    <td>
+                        <b style="font-size:14px;">₹${w.status === 'paid' ? net : total}</b><br>
+                        <small style="color:#94a3b8;">${w.status === 'paid' ? '(Net Paid)' : '(Refunded)'}</small>
+                    </td>
+                    <td>
+                        <span style="background:${statusCol}15; color:${statusCol}; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:11px; text-transform:uppercase;">
+                            ${w.status}
+                        </span>
+                    </td>
+                    <td style="font-size:11px; color:#64748b; line-height:1.4;">
+                        ${w.status === 'rejected' ? 
+                            `<b style="color:var(--admin-red);">Reason:</b> ${w.reject_reason || 'No reason provided'}` : 
+                            `<b style="color:var(--green);">Sent To:</b><br>${payoutDetails}`
+                        }
+                    </td>
+                </tr>`;
+        }).join('');
+    } catch (err) { 
+        console.error("History Fetch Error:", err);
+        historyBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red; padding:15px;">Error loading history. Check backend console.</td></tr>'; 
+    }
+}
+
+        async function processWithdraw(reqId, status) {
+            let reason = "";
+            if (status === 'rejected') {
+                reason = prompt("Reject karne ka reason (User ko dikhega):");
+                if (!reason) return;
+            } else {
+                if (!confirm("Confirm? Kya aapne user ko manually payment kar di hai?")) return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/withdrawals/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reqId, status, reason })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert("Success: Withdrawal " + status);
+                    loadWithdrawalSection();
+                    loadStats();
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (err) { alert("Server connection failed."); }
+        }
+
+        // --- KYC DATA ---
+        async function loadKycData() {
+            try {
+                const [resP, resA] = await Promise.all([
+                    fetch('/api/admin/kyc/pending'),
+                    fetch('/api/admin/kyc/approved')
+                ]);
+                renderKycTables(await resP.json(), await resA.json());
+            } catch (err) { console.error("KYC Fail"); }
+        }
+
+        function renderKycTables(pending, approved) {
+            const pBody = document.getElementById('pendingKycBody');
+            const aBody = document.getElementById('approvedKycBody');
+            pBody.innerHTML = pending.map(u => `<tr><td><b>${u.username}</b></td><td><a href="https://wa.me/${u.whatsapp_no}" style="color:green;">${u.whatsapp_no}</a></td><td><small>A/C: ${u.bank_account_no}<br>UPI: ${u.upi_id}</small></td><td><button class="btn btn-success" onclick="updateKYCStatus(${u.id}, 'approved')">OK</button> <button class="btn btn-danger" onclick="updateKYCStatus(${u.id}, 'rejected')">X</button></td></tr>`).join('') || '<tr><td colspan="4">No data</td></tr>';
+            aBody.innerHTML = approved.map(u => `<tr><td><b>${u.username}</b></td><td>${u.upi_id !== 'N/A' ? 'UPI' : 'Bank'}</td><td><small>Bank: ${u.bank_account_no}<br>UPI: ${u.upi_id}</small></td><td style="color:green;">VERIFIED</td></tr>`).join('') || '<tr><td colspan="4">No data</td></tr>';
+        }
+
+        async function updateKYCStatus(userId, status) {
+            let reason = (status === 'rejected') ? prompt("Reason:") : "";
+            const res = await fetch('/api/admin/kyc/update-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId, status, reason })
+            });
+            if(res.ok) { alert("Done!"); loadKycData(); }
+        }
+
+        // --- OTHERS ---
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/admin/master-stats');
+                const data = await res.json();
+                document.getElementById('statTotalUsers').innerText = data.totalUsers || 0;
+                document.getElementById('statPendingWithdraw').innerText = data.pendingWithdrawals || 0;
+                document.getElementById('statActiveBattles').innerText = data.activeBattles || 0;
+            } catch (e) {}
+        }
+
+        async function loadUsers() {
+            const res = await fetch('/api/admin/users/list');
+            const users = await res.json();
+            document.getElementById('userListBody').innerHTML = users.map(u => `<tr><td>#${u.id}</td><td><b>${u.username}</b></td><td>${u.mobile_no}</td><td>₹${u.wallet_balance}</td><td>₹${u.earning_balance}</td></tr>`).join('');
+        }
+
+        async function loadBattles() {
+            const res = await fetch('/api/admin/battles/pending-details');
+            const data = await res.json();
+            document.getElementById('battleListBody').innerHTML = data.map(b => `<tr><td>#${b.id}</td><td><b>${b.creator_name}</b></td><td><b>${b.joiner_name}</b></td><td>₹${b.amount}</td><td><img src="${b.screenshot_url || ''}" class="ss-img" onclick="window.open(this.src)"></td><td><button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.creator_id}, ${b.amount})">P1</button> <button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.joiner_id}, ${b.amount})">P2</button></td></tr>`).join('');
+        }
+
+        async function approveWinner(battleId, winnerId, amount) {
+            if(!confirm("Release payment?")) return;
+            const res = await fetch('/api/admin/battles/verify-winner', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ battleId, winnerId, amount })
+            });
+            if(res.ok) { alert("Paid!"); loadBattles(); loadStats(); }
+        }
+
+        async function loadSmtpStatus() {
+            const res = await fetch('/api/admin/smtp-status');
+            const data = await res.json();
+            document.getElementById('currentSmtpMail').innerText = data.active_email;
+        }
+
+        function adminLogout() {
+            localStorage.removeItem('admin_logged_in');
+            window.location.href = "/admin-login.html";
+        }
+
+        function exportUsersPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("User Report", 14, 15);
+            doc.autoTable({ html: '#userTable', startY: 20 });
+            doc.save('Users.pdf');
+        }
+
+        window.onload = async () => {
+            if (localStorage.getItem('admin_logged_in') !== 'true') return;
+            await loadStats();
+            showSection('stats'); 
+        };
+    </script>
+</body>
+</html>

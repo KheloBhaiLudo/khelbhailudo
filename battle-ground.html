@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Battle Ground - Ludo King</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #d32f2f; --dark: #0f172a; --card-bg: #1e293b; --gold: #ffd700; --green: #22c55e; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 15px; }
+        
+        .battle-header { text-align: center; margin-bottom: 20px; }
+        .amt-tag { background: var(--gold); color: black; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+
+        .vs-container { display: flex; justify-content: space-around; align-items: center; margin: 25px 0; }
+        .player-box { text-align: center; width: 45%; }
+        .player-img { width: 65px; height: 65px; background: #334155; border-radius: 50%; border: 3px solid var(--primary); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 25px; }
+        .vs-badge { background: var(--gold); color: black; padding: 5px 10px; border-radius: 50%; font-weight: bold; font-size: 12px; }
+
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+        .room-box { background: #0f172a; border: 2px dashed var(--gold); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
+        .room-title { font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
+        .room-code { font-size: 26px; font-weight: bold; letter-spacing: 3px; color: white; }
+        
+        input { width: 100%; padding: 14px; margin-top: 10px; border-radius: 8px; border: 1px solid #444; background: #0f172a; color: white; text-align: center; font-size: 18px; font-weight: bold; }
+        
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-set { background: var(--primary); color: white; }
+        .btn-copy { background: var(--gold); color: black; font-size: 12px; padding: 8px; width: auto; margin: 5px 0; }
+        .btn-win { background: var(--green); color: white; }
+        .btn-lost { background: #4b5563; color: white; }
+        .btn-cancel { background: transparent; color: #ef4444; font-size: 13px; text-decoration: underline; }
+
+        #resultArea { display: none; border-top: 1px solid #334155; margin-top: 15px; padding-top: 15px; }
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; }
+    </style>
+</head>
+<body>
+
+    <div class="battle-header">
+        <span class="amt-tag">BATTLE FOR ₹<span id="battleAmt">0</span></span>
+    </div>
+
+    <div class="vs-container">
+        <div class="player-box">
+            <div class="player-img"><i class="fas fa-user"></i></div>
+            <div id="creatorName" style="color: var(--primary); font-weight: bold;">Loading...</div>
+            <small style="color: #64748b;">(Creator)</small>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="player-box">
+            <div class="player-img" style="border-color: #3b82f6;"><i class="fas fa-user"></i></div>
+            <div id="joinerName" style="color: #3b82f6; font-weight: bold;">Waiting...</div>
+            <small style="color: #64748b;">(Joiner)</small>
+        </div>
+    </div>
+
+    <div class="card">
+        <div id="roomSection">
+            <div class="room-box">
+                <div class="room-title">Ludo King Room Code</div>
+                <div id="roomDisplay" class="room-code">WAITING...</div>
+                <button id="copyBtn" class="btn-copy" style="display:none;" onclick="copyRoomCode()">COPY CODE</button>
+            </div>
+
+            <div id="creatorAction" style="display: none;">
+                <p style="font-size: 12px; color: #94a3b8; text-align: center;">Generate code in Ludo King and paste here:</p>
+                <input type="number" id="roomInput" placeholder="Enter Room Code">
+                <button class="btn btn-set" onclick="setRoomCode()">SET ROOM CODE & START</button>
+            </div>
+
+            <div id="joinerMsg" style="display: none; text-align: center; color: var(--gold); font-size: 13px;">
+                Intezar karein, Creator room code set kar raha hai...
+            </div>
+        </div>
+
+        <div id="resultArea">
+            <p style="text-align: center; font-size: 13px; margin-bottom: 15px; color: #22c55e;">
+                <i class="fas fa-play-circle"></i> Match is LIVE! Play on Ludo King.
+            </p>
+            <button class="btn btn-win" onclick="openModal()">UPLOAD WIN SCREENSHOT</button>
+            <button class="btn btn-lost" onclick="submitDirectResult('lost')">I LOST THE GAME</button>
+            <button class="btn btn-cancel" onclick="submitDirectResult('cancel')">REQUEST CANCEL</button>
+        </div>
+    </div>
+
+    <div id="winModal" class="modal">
+        <div style="padding: 30px; text-align: center; margin-top: 50px;">
+            <h3>Winning Screenshot</h3>
+            <p style="font-size: 12px; color: #ccc;">Ludo King result screen ka screenshot upload karein.</p>
+            <input type="file" id="screenshotFile" accept="image/*" style="margin: 20px 0;">
+            <button class="btn btn-win" onclick="uploadWin()">SUBMIT PROOF</button>
+            <button class="btn btn-lost" onclick="closeModal()">BACK</button>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = "https://khel-bhai-luso-backend-service.onrender.com";
+        const API_BASE = BACKEND_URL + "/api";
+        const urlParams = new URLSearchParams(window.location.search);
+        const battleId = urlParams.get('id');
+        const userId = localStorage.getItem('userId');
+
+        window.onload = () => {
+            if(!battleId || battleId === "undefined") {
+                window.location.href = "ludo.html";
+                return;
+            }
+            fetchData();
+            // 4 second mein refresh taaki Joiner ko Room Code turant dikhe
+            setInterval(fetchData, 4000); 
+        };
+
+        async function fetchData() {
+            try {
+                const res = await fetch(`${API_BASE}/battles/details/${battleId}`);
+                if (!res.ok) throw new Error("Server Response Error");
+                
+                const data = await res.json();
+                if(!data) return;
+
+                // UI mein Data bharna
+                document.getElementById('creatorName').innerText = data.creator_name || "Creator";
+                document.getElementById('joinerName').innerText = data.joiner_name || "Waiting...";
+                document.getElementById('battleAmt').innerText = data.amount || "0";
+
+                const isCreator = (userId == data.creator_id);
+                const roomCodeExists = (data.room_code && data.room_code.trim() !== "");
+
+                if (!roomCodeExists) {
+                    if (isCreator) {
+                        document.getElementById('creatorAction').style.display = 'block';
+                        document.getElementById('joinerMsg').style.display = 'none';
+                    } else {
+                        document.getElementById('creatorAction').style.display = 'none';
+                        document.getElementById('joinerMsg').style.display = 'block';
+                    }
+                    document.getElementById('resultArea').style.display = 'none';
+                    document.getElementById('roomDisplay').innerText = "WAITING...";
+                } else {
+                    document.getElementById('roomDisplay').innerText = data.room_code;
+                    document.getElementById('creatorAction').style.display = 'none';
+                    document.getElementById('joinerMsg').style.display = 'none';
+                    document.getElementById('resultArea').style.display = 'block';
+                    // Copy button sirf Joiner ko dikhao
+                    if(!isCreator) document.getElementById('copyBtn').style.display = 'inline-block';
+                }
+            } catch (e) { 
+                console.log("API Fetch Error:", e);
+            }
+        }
+
+        async function setRoomCode() {
+            const code = document.getElementById('roomInput').value;
+            if(code.length < 6) return alert("Sahi Room Code daalein!");
+
+            try {
+                const res = await fetch(`${API_BASE}/battles/update-room`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ battleId, roomCode: code })
+                });
+                const result = await res.json();
+                if(result.success) {
+                    alert("Room code set ho gaya!");
+                    fetchData();
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (err) {
+                alert("Server error!");
+            }
+        }
+
+        function copyRoomCode() {
+            const code = document.getElementById('roomDisplay').innerText;
+            navigator.clipboard.writeText(code);
+            alert("Code Copied: " + code);
+        }
+
+        function openModal() { document.getElementById('winModal').style.display = 'block'; }
+        function closeModal() { document.getElementById('winModal').style.display = 'none'; }
+
+async function uploadWin() {
+    const fileInput = document.getElementById('screenshotFile');
+    const file = fileInput.files[0];
+    
+    // Check 1: File select hui ya nahi
+    if(!file) return alert("Pehle screenshot select karein!");
+
+    // Check 2: Variables check karein (Console mein dikhega)
+    console.log("Uploading for Battle:", battleId);
+    console.log("User ID:", userId);
+    console.log("File Name:", file.name);
+
+    const formData = new FormData();
+    formData.append('screenshot', file); // 'screenshot' key backend se match honi chahiye
+    formData.append('userId', userId);
+    formData.append('battleId', battleId);
+    formData.append('status', 'won');
+
+    try {
+        // Direct URL use karke dekhte hain mismatch hatane ke liye
+        const res = await fetch("https://khel-bhai-luso-backend-service.onrender.com/api/battles/submit-result", {
+            method: 'POST',
+            body: formData
+            // Note: Yahan 'Content-Type' header BILKUL nahi hona chahiye
+        });
+        
+        const result = await res.json();
+        
+        if(res.ok && result.success) { 
+            alert("Result successfully sent!"); 
+            window.location.href = "dashboard.html"; 
+        } else {
+            console.error("Backend Error:", result);
+            alert("Server Error: " + (result.error || "Upload failed"));
+        }
+    } catch (err) {
+        console.error("Fetch Crash:", err);
+        alert("Network Error: Request backend tak nahi pahunchi.");
+    }
+}
+
+
+        
+async function submitDirectResult(status) {
+    if(!confirm(`Kya aap sure hain ki aap match ${status} kar rahe hain?`)) return;
+    
+    // Yahan hum JSON bhejenge FormData ki jagah taaki file ki zaroorat na pade
+    const formData = new FormData();
+    formData.append('userId', userId);
+    formData.append('battleId', battleId);
+    formData.append('status', status);
+
+    try {
+        const res = await fetch(`${API_BASE}/battles/submit-result`, { 
+            method: 'POST', 
+            body: formData 
+        });
+        const result = await res.json();
+        if(result.success) {
+            alert("Status updated! Admin approval ka intezar karein.");
+            window.location.href = "dashboard.html";
+        } else {
+            alert("Error: " + result.error);
+        }
+    } catch (err) {
+        console.error("Action failed:", err);
+        alert("Server se connection nahi ho paya.");
+    }
+}
+    </script>
+</body>
+</html>

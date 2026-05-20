@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdraw Cash - Ludo Empire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00d2ff; --dark: #0f172a; --card-bg: #1e293b; --green: #22c55e; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; padding: 20px; }
+        .withdraw-card { background: var(--card-bg); padding: 25px; border-radius: 15px; border: 1px solid #334155; }
+        .amt-box { font-size: 24px; color: var(--green); font-weight: bold; text-align: center; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        .btn-withdraw { width: 100%; padding: 15px; background: var(--green); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+        .note { font-size: 11px; color: #94a3b8; margin-top: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="withdraw-card">
+        <h3>Withdraw Earnings</h3>
+        <div class="amt-box">Available: ₹<span id="withdrawableBal">0</span></div>
+        
+        <label style="font-size: 12px; color: #94a3b8;">Enter Amount (Min. ₹100)</label>
+        <input type="number" id="withdrawAmount" placeholder="₹ Amount">
+        
+        <div id="methodInfo" style="font-size: 13px; color: var(--primary); margin-bottom: 15px;">
+            Payout Method: <span id="payoutType">Loading KYC...</span>
+        </div>
+
+        <button class="btn-withdraw" onclick="requestWithdraw()">SEND WITHDRAWAL REQUEST</button>
+        
+        <div class="note">
+            * Withdrawal request 24 ghante ke andar process hoti hai.<br>
+            * TDS 30% deduct ho sakta hai agar winning ₹10,000 se upar hai.
+        </div>
+    </div>
+
+    <script>
+        const userId = localStorage.getItem('userId');
+        window.onload = async () => {
+            const res = await fetch(`/api/user/profile/${userId}`);
+            const data = await res.json();
+            document.getElementById('withdrawableBal').innerText = data.earning_balance;
+            
+            if(data.kyc_status !== 'approved') {
+                alert("Pehle KYC approve karwayein!");
+                window.location.href = "/dashboard.html";
+            }
+            document.getElementById('payoutType').innerText = data.upi_id ? `UPI (${data.upi_id})` : `Bank A/C (${data.bank_account_no})`;
+        };
+
+        async function requestWithdraw() {
+            const amount = document.getElementById('withdrawAmount').value;
+            if(amount < 100) return alert("Min. withdrawal ₹100 hai.");
+
+            const res = await fetch('/api/withdraw/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId, amount })
+            });
+            const result = await res.json();
+            if(result.success) {
+                alert("Request sent! Admin verify karega.");
+                window.location.href = "/dashboard.html";
+            } else {
+                alert(result.message);
+            }
+        }
+    </script>
+</body>
+</html>

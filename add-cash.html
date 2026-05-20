@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Add Cash - Razorpay QR</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        :root { --primary: #22c55e; --dark: #0f172a; --card-bg: #1e293b; --gold: #ffd700; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 15px; }
+        
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .back-btn { font-size: 20px; cursor: pointer; color: var(--primary); }
+
+        .amt-card { background: var(--card-bg); padding: 25px; border-radius: 15px; border: 1px solid #334155; text-align: center; }
+        .amt-input-wrapper { position: relative; margin-bottom: 20px; }
+        .currency-symbol { position: absolute; left: 15px; top: 12px; font-size: 24px; color: var(--gold); font-weight: bold; }
+        
+        input#customAmt { width: 100%; padding: 15px 15px 15px 40px; border-radius: 10px; border: 2px solid #334155; background: #0f172a; color: white; font-size: 24px; font-weight: bold; box-sizing: border-box; }
+        
+        .amt-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 25px; }
+        .amt-opt { background: #0f172a; border: 1px solid #334155; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
+        .amt-opt.active { border-color: var(--primary); background: rgba(34, 197, 94, 0.1); color: var(--primary); }
+
+        .btn-proceed { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-proceed i { font-size: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <i class="fas fa-arrow-left back-btn" onclick="history.back()"></i>
+        <h3 style="margin:0;">Add Cash to Wallet</h3>
+    </div>
+
+    <div class="amt-card">
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 15px;">Enter amount to generate QR</p>
+        
+        <div class="amt-input-wrapper">
+            <span class="currency-symbol">₹</span>
+            <input type="number" id="customAmt" value="100" min="10">
+        </div>
+        
+        <div class="amt-grid">
+            <div class="amt-opt" onclick="setAmt(50, this)">₹50</div>
+            <div class="amt-opt active" onclick="setAmt(100, this)">₹100</div>
+            <div class="amt-opt" onclick="setAmt(500, this)">₹500</div>
+        </div>
+
+        <button class="btn-proceed" id="payBtn" onclick="payWithRazorpay()">
+            <i class="fas fa-qrcode"></i> PAY VIA QR / UPI
+        </button>
+        
+        <p style="margin-top: 20px; font-size: 11px; color: #64748b;">
+            <i class="fas fa-lock"></i> Secured by Razorpay Payment Gateway
+        </p>
+    </div>
+
+    <script>
+        function setAmt(val, element) {
+            document.getElementById('customAmt').value = val;
+            document.querySelectorAll('.amt-opt').forEach(opt => opt.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        async function payWithRazorpay() {
+            const amount = document.getElementById('customAmt').value;
+            const userId = localStorage.getItem('userId');
+            const btn = document.getElementById('payBtn');
+
+            if (!amount || amount < 10) return alert("Min. ₹10 required");
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = "Generating QR...";
+
+                // 1. Order ID create karna
+                const res = await fetch('/api/pay/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const options = {
+                        "key": "rzp_test_SflXxOSDMFAolF", 
+                        "amount": data.order.amount,
+                        "currency": "INR",
+                        "name": "Ludo King Tournament",
+                        "description": "Scan & Pay using any UPI App",
+                        "order_id": data.order.id,
+                        "config": {
+                            "display": {
+                                "blocks": {
+                                    "upi": {
+                                        "name": "Pay via QR or UPI",
+                                        "instruments": [
+                                            { "method": "upi" } // Isse UPI/QR top par dikhega
+                                        ]
+                                    }
+                                },
+                                "sequence": ["block.upi"],
+                                "preferences": { "show_default_blocks": true }
+                            }
+                        },
+                        "handler": async function (response) {
+                            const verifyRes = await fetch('/api/pay/verify', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    amount: amount,
+                                    userId: userId
+                                })
+                            });
+                            const result = await verifyRes.json();
+                            if (result.success) {
+                                alert("Success! Wallet updated.");
+                                window.location.href = "/dashboard.html";
+                            }
+                        },
+                        "theme": { "color": "#22c55e" }
+                    };
+                    const rzp1 = new Razorpay(options);
+                    rzp1.open();
+                }
+            } catch (err) {
+                alert("Payment error!");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-qrcode"></i> PAY VIA QR / UPI';
+            }
+        }
+    </script>
+</body>
+</html>
