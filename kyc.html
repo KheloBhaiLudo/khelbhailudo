@@ -55,6 +55,12 @@
             box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
         }
 
+        /* File input specific styling */
+        input[type="file"] {
+            padding: 10px 12px 10px 42px;
+            font-size: 12px;
+        }
+
         .btn-submit {
             width: 100%;
             padding: 15px;
@@ -70,7 +76,7 @@
             transition: 0.3s;
         }
 
-        .btn-submit:active { transform: scale(0.98); }
+        .btn-submit:disabled { background: #475569; cursor: not-allowed; }
 
         .info-box {
             background: rgba(255, 215, 0, 0.1);
@@ -79,15 +85,13 @@
             margin-top: 20px;
             font-size: 11px;
             color: #ffd700;
-            display: flex;
-            gap: 10px;
             border: 1px solid rgba(255, 215, 0, 0.2);
         }
     </style>
 </head>
 <body>
 
-    <div class="back-btn" onclick="history.back()">
+    <div class="back-btn" onclick="location.href='dashboard.html'">
         <i class="fas fa-arrow-left"></i> Dashboard wapis jayein
     </div>
 
@@ -95,7 +99,7 @@
         <div class="header-box">
             <i class="fas fa-id-card"></i>
             <h2>Complete Your KYC</h2>
-            <p>Withdrawal ke liye bank details bharna anivarya hai</p>
+            <p>Withdrawal ke liye details bharna anivarya hai</p>
         </div>
 
         <div class="input-group">
@@ -122,55 +126,89 @@
             <input type="number" id="whatsapp" placeholder="91XXXXXXXXXX">
         </div>
 
+        <div class="input-group">
+            <label>AADHAR FRONT SIDE</label>
+            <i class="fas fa-camera"></i>
+            <input type="file" id="frontImg" accept="image/*">
+        </div>
+
+        <div class="input-group">
+            <label>AADHAR BACK SIDE</label>
+            <i class="fas fa-camera"></i>
+            <input type="file" id="backImg" accept="image/*">
+        </div>
+
         <button class="btn-submit" onclick="submitKYC()">SUBMIT DETAILS</button>
 
         <div class="info-box">
-            <i class="fas fa-shield-alt" style="font-size: 18px;"></i>
-            <div>+18 saal se uper umar waale log hi registered karein.</div>
-            <div>Galat details bharne par withdrawal reject ho sakta hai.</div>
-
+            <div style="display: flex; gap: 10px;">
+                <i class="fas fa-shield-alt" style="font-size: 18px;"></i>
+                <div>
+                    <div>• Galat details bharna sakht mana hai.</div>
+                    <div>• 18+ saal ke log hi registered karein.</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+
         async function submitKYC() {
-    const userId = localStorage.getItem('userId');
-    const bankAcc = document.getElementById('bankAcc').value;
-    const ifsc = document.getElementById('ifsc').value;
-    const upiId = document.getElementById('upiId').value;
-    const whatsapp = document.getElementById('whatsapp').value;
+            const userId = localStorage.getItem('userId');
+            const bankAcc = document.getElementById('bankAcc').value;
+            const ifsc = document.getElementById('ifsc').value;
+            const upiId = document.getElementById('upiId').value;
+            const whatsapp = document.getElementById('whatsapp').value;
+            
+            // Image files handle karein
+            const frontFile = document.getElementById('frontImg').files[0];
+            const backFile = document.getElementById('backImg').files[0];
 
-    if(!bankAcc || !ifsc || !whatsapp) {
-        return alert("Please fill all mandatory fields!");
-    }
+            // Mandatory Validation
+            if(!bankAcc || !ifsc || !whatsapp || !frontFile || !backFile) {
+                return alert("Please fill all fields and upload both Aadhar images!");
+            }
 
-    // Button ko disable karein taaki double click na ho
-    const btn = document.querySelector('.btn-submit');
-    btn.innerText = "Submitting...";
-    btn.disabled = true;
+            const btn = document.querySelector('.btn-submit');
+            btn.innerText = "Uploading Documents...";
+            btn.disabled = true;
 
-    try {
-        const res = await fetch('/api/user/submit-kyc', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId, bankAcc, ifsc, upiId, whatsapp })
-        });
+            // FormData object images aur text data dono bhej sakta hai
+            const formData = new FormData();
+            formData.append('userId', userId);
+            formData.append('bankAcc', bankAcc);
+            formData.append('ifsc', ifsc.toUpperCase());
+            formData.append('upiId', upiId);
+            formData.append('whatsapp', whatsapp);
+            formData.append('aadharFront', frontFile); // Key backend se match karni chahiye
+            formData.append('aadharBack', backFile);   // Key backend se match karni chahiye
 
-        const data = await res.json();
-        if(data.success) {
-            alert("KYC details submitted! Admin will verify soon.");
-            window.location.href = "/dashboard.html"; // Redirect to dashboard
-        } else {
-            alert("Error: " + data.message);
-            btn.innerText = "SUBMIT DETAILS";
-            btn.disabled = false;
+            try {
+                // Yahan headers: {'Content-Type': 'application/json'} nahi dena hai
+                // Browser FormData ke liye boundary headers apne aap set kar dega
+                const res = await fetch(`${API_BASE}/user/submit-kyc`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                
+                if(data.success) {
+                    alert("KYC details submitted! Admin verify hone par withdraw chalu ho jayega.");
+                    window.location.href = "dashboard.html";
+                } else {
+                    alert("Error: " + (data.error || data.message));
+                    btn.innerText = "SUBMIT DETAILS";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("KYC Error:", err);
+                alert("Server error, try again later.");
+                btn.innerText = "SUBMIT DETAILS";
+                btn.disabled = false;
+            }
         }
-    } catch (err) {
-        alert("Server error, try again.");
-        btn.innerText = "SUBMIT DETAILS";
-        btn.disabled = false;
-    }
-}
     </script>
 </body>
 </html>
