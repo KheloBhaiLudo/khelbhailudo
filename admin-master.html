@@ -108,385 +108,297 @@
 
     <div class="sidebar" id="adminSidebar">
         <div class="sidebar-brand">Ludo Master</div>
-        <div class="nav-item" id="nav-stats" onclick="showSection('stats')"><i class="fas fa-chart-line"></i> Dashboard</div>
-        <div class="nav-item" id="nav-users" onclick="showSection('users')"><i class="fas fa-users"></i> All Users</div>
-        <div class="nav-item" id="nav-battles" onclick="showSection('battles')"><i class="fas fa-gamepad"></i> Verify Battles</div>
+        <div class="nav-item active" id="nav-stats" onclick="showSection('stats')"><i class="fas fa-chart-line"></i> Dashboard</div>
+        <div class="nav-item" id="nav-battles" onclick="showSection('battles')"><i class="fas fa-gamepad"></i> Verify Game Results</div>
+        <div class="nav-item" id="nav-kyc" onclick="showSection('kyc')"><i class="fas fa-id-card"></i> Pending KYC Approvals</div>
         <div class="nav-item" id="nav-withdrawals" onclick="showSection('withdrawals')"><i class="fas fa-university"></i> Withdrawals</div>
-        <div class="nav-item" id="nav-kyc" onclick="showSection('kyc')"><i class="fas fa-id-card"></i> KYC Approvals</div>
-        <div class="nav-item" id="nav-smtp" onclick="showSection('smtp')"><i class="fas fa-envelope"></i> SMTP Settings</div>
+        <div class="nav-item" id="nav-users" onclick="showSection('users')"><i class="fas fa-users"></i> All Users</div>
         <div class="nav-item nav-logout" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
     </div>
 
     <div class="main">
-        <div id="section-stats">
-            <div class="stats-grid">
-                <div class="stat-card" onclick="showSection('users')">
-                    <h3 id="statTotalUsers">0</h3>
-                    <p>Total Registered Users</p>
-                </div>
-                <div class="stat-card" onclick="showSection('withdrawals')">
-                    <h3 id="statPendingWithdraw">0</h3>
-                    <p>Pending Withdrawals</p>
-                </div>
-                <div class="stat-card" onclick="showSection('battles')">
-                    <h3 id="statActiveBattles">0</h3>
-                    <p>Pending Results</p>
-                </div>
-            </div>
+        <!-- Dashboard Section -->
+<!-- Dashboard Section update -->
+<div id="section-stats">
+    <div class="stats-grid">
+        <!-- Naya Card: Total Users -->
+        <div class="stat-card" onclick="showSection('users')">
+            <h3 id="statTotalUsers">0</h3>
+            <p>Total Registered Users</p>
         </div>
+        <div class="stat-card" onclick="showSection('battles')">
+            <h3 id="statPendingBattles">0</h3>
+            <p>Pending Game Results</p>
+        </div>
+        <div class="stat-card" onclick="showSection('withdrawals')">
+            <h3 id="statPendingWithdraw">0</h3>
+            <p>Pending Withdrawals</p>
+        </div>
+        <div class="stat-card" onclick="showSection('kyc')">
+            <h3 id="statPendingKyc">0</h3>
+            <p>Pending KYC Approvals</p>
+        </div>
+    </div>
+</div>
 
-        <div id="section-withdrawals" class="content-card" style="display:none;">
-            <div class="card-header">
-                <h3><i class="fas fa-clock"></i> Pending Withdrawal Requests</h3>
-                <span style="font-size: 12px; color: var(--admin-red);">* 5% Admin Commission Auto-Calculated</span>
-            </div>
+        <!-- KYC Approval Section -->
+        <div id="section-kyc" class="content-card" style="display:none;">
+            <h3><i class="fas fa-user-clock"></i> Pending KYC & Aadhar Verification</h3>
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr style="background: #fffbe6;">
+                        <tr>
                             <th>User Details</th>
-                            <th>Total Amount</th>
-                            <th>Admin Comm (5%)</th>
-                            <th>Final Pay (User)</th>
-                            <th>Payout Mode</th>
+                            <th>Aadhar Front</th>
+                            <th>Aadhar Back</th>
+                            <th>Submitted Details</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingKycBody">
+                        <tr><td colspan="5" style="text-align:center;">Loading users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Withdrawal Section -->
+        <div id="section-withdrawals" class="content-card" style="display:none;">
+            <h3><i class="fas fa-university"></i> Withdrawal Requests</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Final (95%)</th>
+                            <th>Payment Info</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="withdrawBody"></tbody>
                 </table>
             </div>
-
-            <hr style="margin: 40px 0; border: 0; border-top: 2px dashed #ccc;">
-            <div class="card-header">
-                <h3><i class="fas fa-history"></i> Withdrawal History (Latest 100)</h3>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr style="background: #f8fafc;">
-                            <th>Date & Time</th>
-                            <th>User Details</th>
-                            <th>Amount (Net)</th>
-                            <th>Status</th>
-                            <th>Remark / Reason</th>
-                        </tr>
-                    </thead>
-                    <tbody id="withdrawHistoryBody"></tbody>
-                </table>
-            </div>
         </div>
 
+
+    <!-- Battle Verification Section (YAHAN MISSSING THA) -->
+<div id="section-battles" class="content-card" style="display:none;">
+    <h3><i class="fas fa-gamepad"></i> Verify Game Results (Winners)</h3>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Battle ID</th>
+                    <th>Players (Creator vs Joiner)</th>
+                    <th>Amount</th>
+                    <th>Winning Proof</th>
+                    <th>Action (Approve Winner)</th>
+                </tr>
+            </thead>
+            <tbody id="battleListBody">
+                <tr><td colspan="5" style="text-align:center;">No pending results.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+        
+
+        <!-- All Users Section -->
         <div id="section-users" class="content-card" style="display:none;">
-            <div class="card-header">
-                <h3>User Directory</h3>
-                <button class="btn btn-pdf" onclick="exportUsersPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
-            </div>
+            <h3>User Directory</h3>
             <div class="table-responsive">
                 <table id="userTable">
                     <thead>
-                        <tr><th>ID</th><th>Name</th><th>Mobile</th><th>Wallet</th><th>Earnings</th></tr>
+                        <tr><th>ID</th><th>Username</th><th>Mobile</th><th>Balance</th><th>Status</th></tr>
                     </thead>
                     <tbody id="userListBody"></tbody>
                 </table>
             </div>
         </div>
-
-        <div id="section-battles" class="content-card" style="display:none;">
-            <h3>Verify Game Results</h3>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr><th>Game ID</th><th>P1 (Creator)</th><th>P2 (Joiner)</th><th>Amount</th><th>Proof</th><th>Action</th></tr>
-                    </thead>
-                    <tbody id="battleListBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="section-kyc" class="content-card" style="display:none;">
-            <div class="card-header"><h3>KYC Management Panel</h3></div>
-            <input type="text" id="kycSearch" class="search-box" onkeyup="filterKYC()" placeholder="Search by Name, Mobile or ID...">
-            <div class="section-title" style="color: var(--admin-red);"><i class="fas fa-user-clock"></i> Pending Requests</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr style="background: #fff5f5;">
-                            <th>User Details</th>
-                            <th>WhatsApp</th>
-                            <th>Payout Details</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pendingKycBody"></tbody>
-                </table>
-            </div>
-            <hr style="margin: 40px 0; border: 0; border-top: 2px dashed #eee;">
-            <div class="section-title" style="color: var(--green);"><i class="fas fa-check-double"></i> Approved Users</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr style="background: #f6ffed;">
-                            <th>User Details</th>
-                            <th>Payout Method</th>
-                            <th>Bank / UPI Details</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="approvedKycBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="section-smtp" class="content-card" style="display:none;">
-            <h3>SMTP Configuration</h3>
-            <div style="background: #fdf2f2; padding: 15px; border-radius: 8px; border-left: 4px solid var(--admin-red); margin-bottom: 20px;">
-                <p style="margin: 0; font-weight: bold;">Current SMTP Email: <span id="currentSmtpMail" style="color: var(--admin-red);">Loading...</span></p>
-            </div>
-            <button class="btn btn-success" onclick="location.href='/admin.html'">Advanced Settings</button>
-        </div>
     </div>
 
     <script>
-        if (localStorage.getItem('admin_logged_in') !== 'true') window.location.href = "/admin-login.html";
+const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+const BACKEND_URL_ONLY = "https://khel-bhai-luso-backend-service.onrender.com";
 
         function toggleSidebar() {
             document.getElementById('adminSidebar').classList.toggle('active');
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        function showSection(sectionId) {
-            const sections = ['stats', 'users', 'battles', 'withdrawals', 'kyc', 'smtp'];
-            sections.forEach(s => {
-                const el = document.getElementById('section-' + s);
-                if(el) el.style.display = 'none';
-            });
-            const target = document.getElementById('section-' + sectionId);
-            if(target) target.style.display = 'block';
+function showSection(id) {
+    // 'battles' ko yahan list mein add kiya gaya hai
+    const sections = ['stats', 'users', 'withdrawals', 'kyc', 'battles']; 
+    
+    sections.forEach(s => {
+        const el = document.getElementById('section-' + s);
+        if(el) el.style.display = 'none'; // Error check: Agar element hai tabhi style change karein
+    });
 
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const nav = document.getElementById('nav-' + sectionId);
-            if(nav) nav.classList.add('active');
+    const target = document.getElementById('section-' + id);
+    if(target) {
+        target.style.display = 'block';
+    } else {
+        console.error("Section not found: section-" + id);
+    }
+    
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const nav = document.getElementById('nav-' + id);
+    if(nav) nav.classList.add('active');
 
-            if(window.innerWidth <= 768) toggleSidebar();
+    // Data load functions
+    if(id === 'kyc') loadPendingKyc();
+    if(id === 'users') loadAllUsers();
+    if(id === 'withdrawals') loadPendingWithdrawals();
+    if(id === 'battles') loadBattles(); // Naya function call
+}
+        
 
-            if(sectionId === 'users') loadUsers();
-            if(sectionId === 'battles') loadBattles();
-            if(sectionId === 'kyc') loadKycData();
-            if(sectionId === 'withdrawals') loadWithdrawalSection(); // Updated
-            if(sectionId === 'smtp') loadSmtpStatus();
-        }
-
-        // --- WITHDRAWAL LOGIC (PENDING + HISTORY) ---
-        async function loadWithdrawalSection() {
-            loadPendingWithdrawals();
-            loadWithdrawalHistory();
-        }
-
-        async function loadPendingWithdrawals() {
-            const body = document.getElementById('withdrawBody');
+        // --- 1. Load Pending KYC with Images ---
+        async function loadPendingKyc() {
+            const body = document.getElementById('pendingKycBody');
             try {
-                const res = await fetch('/api/admin/withdrawals/pending');
-                const data = await res.json();
+                // Backend API call to get users where is_verified = false
+                const res = await fetch(`${API_BASE}/admin/pending-users`);
+                const users = await res.json();
                 
-                if (!data || data.length === 0) {
-                    body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No pending withdrawal requests.</td></tr>';
+                if(users.length === 0) {
+                    body.innerHTML = '<tr><td colspan="5" style="text-align:center;">Sab verified hain! Koi pending nahi hai.</td></tr>';
                     return;
                 }
 
-                body.innerHTML = data.map(w => {
-                    const total = parseFloat(w.amount);
-                    const comm = (total * 0.05).toFixed(2);
-                    const finalPay = (total - comm).toFixed(2);
-
-                    return `
-                        <tr>
-                            <td><b>${w.username}</b><br><small>ID: #${w.user_id}</small></td>
-                            <td style="color:var(--admin-red); font-weight:bold;">₹${total}</td>
-                            <td style="color:#64748b;">₹${comm}</td>
-                            <td style="color:var(--green); font-weight:bold;">₹${finalPay}</td>
-                            <td>
-                                <div style="font-size:11px; line-height:1.3;">
-                                    <b>Bank:</b> ${w.bank_account_no || 'N/A'}<br>
-                                    <b>UPI:</b> ${w.upi_id || 'N/A'}
-                                </div>
-                            </td>
-                            <td>
-                                <button class="btn btn-success" onclick="processWithdraw(${w.id}, 'paid')">Mark Paid</button>
-                                <button class="btn btn-danger" onclick="processWithdraw(${w.id}, 'rejected')">Reject</button>
-                            </td>
-                        </tr>`;
-                }).join('');
-            } catch (err) { body.innerHTML = '<tr><td colspan="6">Error loading pending requests.</td></tr>'; }
+                body.innerHTML = users.map(u => `
+                    <tr>
+                        <td><b>${u.full_name}</b><br><small>${u.mobile_no}</small></td>
+                        <td><img src="${BACKEND_URL_ONLY}${u.aadhar_front_url}" class="ss-img" onclick="window.open(this.src)"></td>
+                        <td><img src="${BACKEND_URL_ONLY}${u.aadhar_back_url}" class="ss-img" onclick="window.open(this.src)"></td>
+                        <td>
+                            <small><b>UPI:</b> ${u.upi_id || 'N/A'}</small><br>
+                            <small><b>Bank:</b> ${u.bank_account_no || 'N/A'}</small>
+                        </td>
+                        <td>
+                            <button class="btn btn-success" onclick="approveUser(${u.id})">APPROVE</button>
+                            <button class="btn btn-danger" onclick="rejectUser(${u.id})">REJECT</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { body.innerHTML = '<tr><td colspan="5">Error loading data.</td></tr>'; }
         }
 
-        async function loadWithdrawalHistory() {
-    const historyBody = document.getElementById('withdrawHistoryBody');
-    
-    // Naya data aane tak loading show karega
-    historyBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px;">Loading history...</td></tr>';
+        async function approveUser(userId) {
+            if(!confirm("Kya aap is user ko approve karna chahte hain?")) return;
+            const res = await fetch(`${API_BASE}/admin/approve-user`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId })
+            });
+            const data = await res.json();
+            if(data.success) { alert("User Approved!"); loadPendingKyc(); updateStats(); }
+        }
 
+        // --- 2. Other Admin Functions ---
+        async function loadAllUsers() {
+            const res = await fetch(`${API_BASE}/admin/users/list`);
+            const data = await res.json();
+            document.getElementById('userListBody').innerHTML = data.map(u => `
+                <tr>
+                    <td>#${u.id}</td>
+                    <td>${u.username}</td>
+                    <td>${u.mobile_no}</td>
+                    <td>₹${u.wallet_balance}</td>
+                    <td style="color:${u.is_verified ? 'green':'red'}">${u.is_verified ? 'Verified':'Pending'}</td>
+                </tr>
+            `).join('');
+        }
+
+
+// --- Battle Results Verification (ID MATCH FIX) ---
+async function loadBattles() {
+    const body = document.getElementById('battleListBody');
     try {
-        const res = await fetch('/api/admin/withdrawals/history');
-        if (!res.ok) throw new Error("HTTP Error: " + res.status);
+        const res = await fetch(`${API_BASE}/admin/battles/pending-details`);
+        const data = await res.json();
+        
+        body.innerHTML = data.length ? data.map(b => {
+            // Galti yahan thi: sPath ko seedha use karne par wo github ka link bana raha tha
+            const sPath = b.screenshot_url ? b.screenshot_url.trim() : "";
+            
+            // SAHI TARIKA: Hamesha BACKEND_URL (Render) ka use karein
+            // Agar sPath '/uploads/123.png' hai toh ye 'https://...render.com/uploads/123.png' banayega
+            const fullImg = (sPath && sPath !== "null") ? (BACKEND_URL_ONLY + sPath) : "";
+
+            return `
+                <tr>
+                    <td>#${b.id}</td>
+                    <td>${b.creator_name} vs ${b.joiner_name}</td>
+                    <td>₹${b.amount}</td>
+                    <td>
+                        ${fullImg ? `<img src="${fullImg}" class="ss-img" onclick="window.open(this.src)" onerror="this.src='https://via.placeholder.com/100x150?text=Error'">` 
+                                  : `<span style="color:red; font-size:10px;">No Proof Uploaded</span>`}
+                    </td>
+                    <td style="font-weight:bold; color:blue;">${b.result_status || 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.creator_id})">Winner P1</button>
+                        <button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.joiner_id})">Winner P2</button>
+                    </td>
+                </tr>`;
+        }).join('') : '<tr><td colspan="6" align="center">No pending results.</td></tr>';
+    } catch (e) { console.error("Load Error:", e); }
+}
+
+        
+
+async function updateStats() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/master-stats`);
+        if (!res.ok) throw new Error("Stats fetch failed");
         
         const data = await res.json();
         
-        if (!data || data.length === 0) {
-            historyBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px;">No history available yet.</td></tr>';
-            return;
+        // Dashboard cards ko update karna
+        // 1. Total Users card update karein
+        if(document.getElementById('statTotalUsers')) {
+            document.getElementById('statTotalUsers').innerText = data.totalUsers || 0;
         }
-
-        historyBody.innerHTML = data.map(w => {
-            const total = parseFloat(w.amount);
-            const net = (total * 0.95).toFixed(2);
-            const statusCol = w.status === 'paid' ? 'var(--green)' : 'var(--admin-red)';
-            
-            // Payment details agar available hon
-            const payoutDetails = w.upi_id && w.upi_id !== 'N/A' ? `UPI: ${w.upi_id}` : `A/C: ${w.bank_account_no || 'N/A'}`;
-
-            return `
-                <tr style="font-size: 13px; border-bottom: 1px solid #eee;">
-                    <td>
-                        <span style="font-weight:600;">${new Date(w.created_at).toLocaleDateString()}</span><br>
-                        <small style="color:#64748b;">${new Date(w.created_at).toLocaleTimeString()}</small>
-                    </td>
-                    <td>
-                        <b>${w.username}</b><br>
-                        <small style="color:#3b82f6;">ID: #${w.user_id}</small>
-                    </td>
-                    <td>
-                        <b style="font-size:14px;">₹${w.status === 'paid' ? net : total}</b><br>
-                        <small style="color:#94a3b8;">${w.status === 'paid' ? '(Net Paid)' : '(Refunded)'}</small>
-                    </td>
-                    <td>
-                        <span style="background:${statusCol}15; color:${statusCol}; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:11px; text-transform:uppercase;">
-                            ${w.status}
-                        </span>
-                    </td>
-                    <td style="font-size:11px; color:#64748b; line-height:1.4;">
-                        ${w.status === 'rejected' ? 
-                            `<b style="color:var(--admin-red);">Reason:</b> ${w.reject_reason || 'No reason provided'}` : 
-                            `<b style="color:var(--green);">Sent To:</b><br>${payoutDetails}`
-                        }
-                    </td>
-                </tr>`;
-        }).join('');
-    } catch (err) { 
-        console.error("History Fetch Error:", err);
-        historyBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red; padding:15px;">Error loading history. Check backend console.</td></tr>'; 
+        
+        // 2. Pending Game Results
+        if(document.getElementById('statPendingBattles')) {
+            document.getElementById('statPendingBattles').innerText = data.pendingBattles || 0;
+        }
+        
+        // 3. Pending Withdrawals
+        if(document.getElementById('statPendingWithdraw')) {
+            document.getElementById('statPendingWithdraw').innerText = data.pendingWithdrawals || 0;
+        }
+        
+        // 4. Pending KYC
+        if(document.getElementById('statPendingKyc')) {
+            document.getElementById('statPendingKyc').innerText = data.pendingKyc || 0;
+        }
+    } catch (e) { 
+        console.error("Stats update failed:", e); 
     }
 }
-
-        async function processWithdraw(reqId, status) {
-            let reason = "";
-            if (status === 'rejected') {
-                reason = prompt("Reject karne ka reason (User ko dikhega):");
-                if (!reason) return;
-            } else {
-                if (!confirm("Confirm? Kya aapne user ko manually payment kar di hai?")) return;
-            }
-
-            try {
-                const res = await fetch('/api/admin/withdrawals/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reqId, status, reason })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    alert("Success: Withdrawal " + status);
-                    loadWithdrawalSection();
-                    loadStats();
-                } else {
-                    alert("Error: " + result.error);
-                }
-            } catch (err) { alert("Server connection failed."); }
-        }
-
-        // --- KYC DATA ---
-        async function loadKycData() {
-            try {
-                const [resP, resA] = await Promise.all([
-                    fetch('/api/admin/kyc/pending'),
-                    fetch('/api/admin/kyc/approved')
-                ]);
-                renderKycTables(await resP.json(), await resA.json());
-            } catch (err) { console.error("KYC Fail"); }
-        }
-
-        function renderKycTables(pending, approved) {
-            const pBody = document.getElementById('pendingKycBody');
-            const aBody = document.getElementById('approvedKycBody');
-            pBody.innerHTML = pending.map(u => `<tr><td><b>${u.username}</b></td><td><a href="https://wa.me/${u.whatsapp_no}" style="color:green;">${u.whatsapp_no}</a></td><td><small>A/C: ${u.bank_account_no}<br>UPI: ${u.upi_id}</small></td><td><button class="btn btn-success" onclick="updateKYCStatus(${u.id}, 'approved')">OK</button> <button class="btn btn-danger" onclick="updateKYCStatus(${u.id}, 'rejected')">X</button></td></tr>`).join('') || '<tr><td colspan="4">No data</td></tr>';
-            aBody.innerHTML = approved.map(u => `<tr><td><b>${u.username}</b></td><td>${u.upi_id !== 'N/A' ? 'UPI' : 'Bank'}</td><td><small>Bank: ${u.bank_account_no}<br>UPI: ${u.upi_id}</small></td><td style="color:green;">VERIFIED</td></tr>`).join('') || '<tr><td colspan="4">No data</td></tr>';
-        }
-
-        async function updateKYCStatus(userId, status) {
-            let reason = (status === 'rejected') ? prompt("Reason:") : "";
-            const res = await fetch('/api/admin/kyc/update-status', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId, status, reason })
-            });
-            if(res.ok) { alert("Done!"); loadKycData(); }
-        }
-
-        // --- OTHERS ---
-        async function loadStats() {
-            try {
-                const res = await fetch('/api/admin/master-stats');
-                const data = await res.json();
-                document.getElementById('statTotalUsers').innerText = data.totalUsers || 0;
-                document.getElementById('statPendingWithdraw').innerText = data.pendingWithdrawals || 0;
-                document.getElementById('statActiveBattles').innerText = data.activeBattles || 0;
-            } catch (e) {}
-        }
-
-        async function loadUsers() {
-            const res = await fetch('/api/admin/users/list');
-            const users = await res.json();
-            document.getElementById('userListBody').innerHTML = users.map(u => `<tr><td>#${u.id}</td><td><b>${u.username}</b></td><td>${u.mobile_no}</td><td>₹${u.wallet_balance}</td><td>₹${u.earning_balance}</td></tr>`).join('');
-        }
-
-        async function loadBattles() {
-            const res = await fetch('/api/admin/battles/pending-details');
-            const data = await res.json();
-            document.getElementById('battleListBody').innerHTML = data.map(b => `<tr><td>#${b.id}</td><td><b>${b.creator_name}</b></td><td><b>${b.joiner_name}</b></td><td>₹${b.amount}</td><td><img src="${b.screenshot_url || ''}" class="ss-img" onclick="window.open(this.src)"></td><td><button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.creator_id}, ${b.amount})">P1</button> <button class="btn btn-success" onclick="approveWinner(${b.id}, ${b.joiner_id}, ${b.amount})">P2</button></td></tr>`).join('');
-        }
-
-        async function approveWinner(battleId, winnerId, amount) {
-            if(!confirm("Release payment?")) return;
-            const res = await fetch('/api/admin/battles/verify-winner', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ battleId, winnerId, amount })
-            });
-            if(res.ok) { alert("Paid!"); loadBattles(); loadStats(); }
-        }
-
-        async function loadSmtpStatus() {
-            const res = await fetch('/api/admin/smtp-status');
-            const data = await res.json();
-            document.getElementById('currentSmtpMail').innerText = data.active_email;
-        }
+        
 
         function adminLogout() {
             localStorage.removeItem('admin_logged_in');
-            window.location.href = "/admin-login.html";
+            window.location.href = "index.html";
         }
 
-        function exportUsersPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("User Report", 14, 15);
-            doc.autoTable({ html: '#userTable', startY: 20 });
-            doc.save('Users.pdf');
-        }
-
-        window.onload = async () => {
-            if (localStorage.getItem('admin_logged_in') !== 'true') return;
-            await loadStats();
-            showSection('stats'); 
+        window.onload = () => {
+            // Simple security check (Aap ismein password login bhi add kar sakte hain)
+            const isAdmin = localStorage.getItem('admin_logged_in');
+            if(!isAdmin) {
+                const pass = prompt("Admin Password daalein:");
+                if(pass === "Praveen@123") { // Apna password yahan set karein
+                    localStorage.setItem('admin_logged_in', 'true');
+                } else {
+                    window.location.href = "index.html";
+                }
+            }
+            updateStats();
         };
     </script>
 </body>
