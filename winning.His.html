@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Winning History - Ludo Empire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00d2ff; --secondary: #3a7bd5; --dark: #0f172a; --accent: #ffd700; --card-bg: #1e293b; --green: #22c55e; --red: #ef4444; }
+        body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: var(--card-bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .header i { font-size: 20px; cursor: pointer; color: var(--accent); }
+        .header h3 { margin: 0; font-size: 18px; color: var(--accent); }
+
+        /* Stats Card */
+        .winning-stats {
+            margin: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #b4941d, #ffd700);
+            border-radius: 15px;
+            color: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.2);
+        }
+        .stat-box span { font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .stat-box h2 { margin: 5px 0 0; font-size: 28px; font-weight: 800; }
+
+        /* History List */
+        .history-container { padding: 15px; }
+        .claim-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.3s;
+        }
+        .claim-card:active { transform: scale(0.98); }
+
+        .claim-info b { display: block; font-size: 15px; color: #f1f5f9; }
+        .claim-info small { color: #94a3b8; font-size: 11px; margin-top: 4px; display: block; }
+        
+        .claim-status { text-align: right; }
+        .claim-amt { font-weight: bold; font-size: 18px; color: var(--accent); display: block; }
+        .badge { 
+            font-size: 10px; 
+            padding: 3px 8px; 
+            border-radius: 20px; 
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .bg-pending { background: rgba(255, 215, 0, 0.1); color: var(--accent); border: 1px solid var(--accent); }
+        .bg-success { background: rgba(34, 197, 94, 0.1); color: var(--green); border: 1px solid var(--green); }
+        .bg-rejected { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
+
+        .no-data { text-align: center; padding: 60px 20px; color: #64748b; }
+        .no-data i { margin-bottom: 15px; opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <i class="fas fa-arrow-left" onclick="history.back()"></i>
+        <h3>Winning History</h3>
+    </div>
+
+    <div class="winning-stats">
+        <div class="stat-box">
+            <span>Redeemable Winnings</span>
+            <h2 id="winBal">₹0</h2>
+        </div>
+        <i class="fas fa-trophy fa-3x" style="opacity: 0.4;"></i>
+    </div>
+
+    <div style="padding: 0 15px; margin-top: 10px;">
+        <h4 style="font-size: 14px; color: #94a3b8; margin-bottom: 10px;">Withdrawal Requests History</h4>
+    </div>
+
+    <div class="history-container" id="winningList">
+        <!-- History dynamically loaded here -->
+        <p class="no-data">Fetching history...</p>
+    </div>
+
+    <script>
+        const API_BASE = "https://khel-bhai-luso-backend-service.onrender.com/api";
+        const userId = localStorage.getItem('userId');
+
+        window.onload = () => {
+            if(!userId) { window.location.href = "index.html"; return; }
+            loadWinningData();
+        };
+
+        async function loadWinningData() {
+            const listDiv = document.getElementById('winningList');
+            try {
+                // 1. Fetch User Earning Balance
+                const userRes = await fetch(`${API_BASE}/user/details/${userId}`);
+                const userData = await userRes.json();
+                document.getElementById('winBal').innerText = "₹" + (userData.earning_balance || 0);
+
+                // 2. Fetch Withdrawal Transactions Only
+                const res = await fetch(`${API_BASE}/user/transactions/${userId}`);
+                const data = await res.json();
+
+                // Filter only 'withdrawal' type transactions
+                const withdrawHistory = data.filter(t => t.type === 'withdrawal');
+
+                if(!withdrawHistory || withdrawHistory.length === 0) {
+                    listDiv.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-history fa-4x"></i>
+                            <p>Abhi tak aapne koi winning claim nahi ki hai.</p>
+                        </div>`;
+                    return;
+                }
+
+                listDiv.innerHTML = withdrawHistory.map(w => {
+                    let statusClass = 'bg-pending';
+                    if(w.status.toLowerCase() === 'success') statusClass = 'bg-success';
+                    if(w.status.toLowerCase() === 'rejected') statusClass = 'bg-rejected';
+
+                    return `
+                        <div class="claim-card">
+                            <div class="claim-info">
+                                <b>Token Redemption</b>
+                                <small><i class="far fa-calendar-alt"></i> ${new Date(w.created_at).toLocaleString()}</small>
+                                <small>Transaction ID: #WDR${w.id}</small>
+                            </div>
+                            <div class="claim-status">
+                                <span class="claim-amt">₹${parseFloat(w.amount).toFixed(2)}</span>
+                                <span class="badge ${statusClass}">${w.status.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                listDiv.innerHTML = '<p class="no-data" style="color:var(--red);">Failed to load history. Try again.</p>';
+            }
+        }
+    </script>
+</body>
+</html>
