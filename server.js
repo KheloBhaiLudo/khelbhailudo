@@ -24,19 +24,23 @@ const pool = require('./db');
 const supabaseClientInstance = pool.supabase || global.supabase;
 
 
-// CORS Multi-Origin configuration layer (100% Final Fix for Exact Sub-folder Link)
+// ========================================================
+// 🔒 INTERNAL RE-ROUTE: CORS POLICY FIXED FOR CUSTOM DOMAIN
+// ========================================================
+const cors = require('cors'); // Ensure top par header imported ho
+
 const allowedOrigins = [
-    'https://khelbhailudo.com',                         // 🔥 AAPKA LIVE MAIN DOMAIN (Strictly Allowed)
-    'https://www.khelbhailudo.com',                     // www wala domain backup
-    'https://khelobhailudo.github.io/khelbhailudo/',    // GitHub sub-folder link
-    'https://khelobhailudo.github.io',                  // GitHub root link
-    'http://localhost:5500',                            // Local testing ke liye
+    'https://khelbhailudo.com',                         // 🔥 Active Custom Domain
+    'https://www.khelbhailudo.com',                     // www backup routing
+    'https://khelobhailudo.github.io/khelbhailudo/',    // Sub-folder mapping layout
+    'https://khelobhailudo.github.io',                  // GitHub profile root link
+    'http://localhost:5500',
     'http://127.0.0.1:5500'
 ];
 
-app.use(cors({
+const corsOptions = {
     origin: function (origin, callback) {
-        // Agar request same server se ho ya whitelist mein ho
+        // Agar request local ho ya allowed list mein ho
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
             callback(null, true);
         } else {
@@ -47,11 +51,9 @@ app.use(cors({
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
 
-
-// Dynamic Memory Cache Allocation for OTP tracking
-const otpStore = {};
+app.use(cors(corsOptions));
 
 
 // --- DATABASE TABLES INITIALIZATION ---
