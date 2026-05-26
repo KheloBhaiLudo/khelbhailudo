@@ -25,7 +25,7 @@ const supabaseClientInstance = pool.supabase || global.supabase;
 
 
 // ========================================================
-// 🔥 ABSOLUTE 100% CORS FIX (PREFLIGHT OVERRIDE)
+// 🔥 ABSOLUTE 100% CORS FIX (EXPRESS V4/V5 SAFE PREFLIGHT OVERRIDE)
 // ========================================================
 
 const allowedOrigins = [
@@ -51,11 +51,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
-// 2. 🔥 MANDATORY PREFLIGHT HANDLER (Yeh sabse important hai)
-// Browser ki OPTIONS request ko server yahin se '200 OK' bolkar bypass kar dega
-app.options('*', (req, res) => {
+// 2. 🔥 FIXED WILDCARD PATTERN FOR EXPRESS (No PathError Crash)
+// Browser ki OPTIONS request ko server `(.*)` standard regex se '200 OK' bolkar bypass kar dega
+app.options('(.*)', (req, res) => {
     const origin = req.headers.origin;
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
+    if (origin && (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost'))) {
         res.header('Access-Control-Allow-Origin', origin);
     }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
