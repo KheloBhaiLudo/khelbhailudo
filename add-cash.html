@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Add Cash - UPI Gateway</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- 🔥 CASHFREE OFFICIAL WEB SDK V3 ADDED -->
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
     <style>
         :root { --primary: #22c55e; --dark: #0f172a; --card-bg: #1e293b; --gold: #ffd700; }
         body { font-family: 'Poppins', sans-serif; background: var(--dark); color: white; margin: 0; padding: 15px; }
@@ -32,7 +36,7 @@
 
     <div class="loader-overlay" id="loader">
         <i class="fas fa-spinner fa-spin fa-3x" style="color: var(--primary); margin-bottom: 15px;"></i>
-        <p>Connecting to UPI Gateway...</p>
+        <p>Connecting to Secured Payment Gateway...</p>
     </div>
 
     <div class="header">
@@ -41,7 +45,7 @@
     </div>
 
     <div class="amt-card">
-        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 15px;">Enter amount to generate UPI QR</p>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 15px;">Enter amount to deposit via UPI</p>
         
         <div class="amt-input-wrapper">
             <span class="currency-symbol">₹</span>
@@ -55,15 +59,16 @@
         </div>
 
         <button class="btn-proceed" id="payBtn" onclick="payWithUPIGateway()">
-            <i class="fas fa-qrcode"></i> GENERATE DYNAMIC QR
+            <i class="fas fa-credit-card"></i> PROCEED TO PAY
         </button>
         
         <p style="margin-top: 20px; font-size: 11px; color: #64748b;">
-            <i class="fas fa-lock"></i> Secured UPI Payment Gateway
+            <i class="fas fa-lock"></i> Secured by Cashfree Payments
         </p>
     </div>
 
     <script>
+        // Naye client ke deploy kiye hue backend URL se ise replace kar lena Praveen
         const BACKEND_URL = "https://khel-bhai-luso-backend-service.onrender.com";
 
         function setAmt(val, element) {
@@ -75,6 +80,11 @@
         async function payWithUPIGateway() {
             const amount = document.getElementById('customAmt').value;
             const userId = localStorage.getItem('userId');
+            
+            // Safe backups for user profile mapping
+            const username = localStorage.getItem('username') || "Ludo Player";
+            const mobileNo = localStorage.getItem('mobileNo') || "0000000000";
+
             const btn = document.getElementById('payBtn');
             const loader = document.getElementById('loader');
 
@@ -85,18 +95,34 @@
                 btn.disabled = true;
                 loader.style.display = 'flex';
 
-                const res = await fetch(`${BACKEND_URL}/api/pay/create-order`, {
+                // 🔥 1. Naye Cashfree Route Par Request Bheji
+                const res = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, userId })
+                    body: JSON.stringify({ amount, userId, username, mobileNo })
                 });
                 
                 const data = await res.json();
 
-                if (data.success && data.payment_data && data.payment_data.payment_url) {
-                    window.location.href = data.payment_data.payment_url;
+                // 🔥 2. Cashfree SDK Modal Gateway Checkout Execution
+                if (data.success && data.payment_session_id) {
+                    
+                    // Cashfree Production Initialization Object
+                    const cashfree = Cashfree({ mode: "production" });
+
+                    let checkoutOptions = {
+                        paymentSessionId: data.payment_session_id,
+                        redirectTarget: "_self" // Same window validation handling
+                    };
+
+                    // Loader hataya aur screen par overlay popup launch kiya
+                    loader.style.display = 'none';
+                    btn.disabled = false;
+                    
+                    cashfree.checkout(checkoutOptions);
+
                 } else {
-                    alert("Payment Error: " + (data.error || "Gateway busy hai, thodi der baad koshish karein"));
+                    alert("Payment Error: " + (data.message || "Gateway busy hai, thodi der baad koshish karein"));
                     loader.style.display = 'none';
                     btn.disabled = false;
                 }
