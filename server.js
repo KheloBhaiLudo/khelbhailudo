@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
@@ -26,7 +27,6 @@ const supabaseClientInstance = pool.supabase || global.supabase;
 // ========================================================
 // 🔥 ABSOLUTE 100% CORS FIX (PREFLIGHT OVERRIDE)
 // ========================================================
-const cors = require('cors');
 
 const allowedOrigins = [
     'https://khelbhailudo.com',
