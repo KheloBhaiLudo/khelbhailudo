@@ -20,24 +20,23 @@ if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
 const pool = require('./db');
 
 // FIXED: Agar db.js ke andar 'supabase' exported hai toh thik hai, nahi toh collision se bachne ke liye standard check laga diya hai
-// Agar aapke 'db.js' se client export hota hai toh ye line use automatic use karegi bina re-declaration error ke.
 const supabaseClientInstance = pool.supabase || global.supabase;
 
 
 // ========================================================
-// 🔒 CORS MULTI-ORIGIN CONFIGURATION LAYER & EXPRESS BYPASS
+// 🔒 100% STABLE CORS & PREFLIGHT BYPASS (NO REGEX - NO CRASH)
 // ========================================================
 const allowedOrigins = [
-    'https://khelbhailudo.com',                         // 🔥 AAPKA LIVE MAIN DOMAIN
-    'https://www.khelbhailudo.com',                     // www wala domain backup
-    'https://khelobhailudo.github.io/khelbhailudo/',    // 🔥 EXACT MATCH: Aapka current active site link
-    'https://khelobhailudo.github.io/khelbhailudo',     // Safe backup for clean sub-folder string
-    'https://khelobhailudo.github.io',                  // Root domain safe bypass
-    'http://localhost:5500',                            // Local testing
+    'https://khelbhailudo.com',
+    'https://www.khelbhailudo.com',
+    'https://khelobhailudo.github.io/khelbhailudo/',
+    'https://khelobhailudo.github.io/khelbhailudo',
+    'https://khelobhailudo.github.io',
+    'http://localhost:5500',
     'http://127.0.0.1:5500'
 ];
 
-// 1. Standard CORS Middleware Application
+// 1. Apply Standard CORS to all standard routes
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
@@ -52,17 +51,22 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
-// 2. 🔥 FIXED EXPRESS V4/V5 PREFLIGHT OPTIONS BYPASS (NO CRASH)
-// Wildcard '*' ki jagah '(.*)' use kiya hai taaki path-to-regexp crash na kare
-app.options('(.*)', (req, res) => {
+// 2. 🔥 GLOBAL PREFLIGHT MIDDLEWARE BINDING (Bina Kisi Path ke - Safe Override)
+// Yeh method bina kisi custom parameters ke browser ke OPTIONS preflight ko accept kar lega
+app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin && (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost'))) {
         res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
     }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    return res.sendStatus(200);
+    
+    // Agar request browser ki preflight OPTIONS request hai, toh yahin se return kar do
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
 });
 
 
@@ -81,34 +85,31 @@ app.post('/api/payment/create-order', async (req, res) => {
             return res.status(400).json({ success: false, message: "Amount and User ID are required" });
         }
 
-        // Cashfree Production Endpoint URL
         const cashfreeUrl = "https://api.cashfree.com/pg/orders";
 
         const orderData = {
             order_amount: parseFloat(amount).toFixed(2),
             order_currency: "INR",
-            order_id: `ORD_${Date.now()}_${userId}`, // Unique Dynamic Order ID Tracking
+            order_id: `ORD_${Date.now()}_${userId}`,
             customer_details: {
                 customer_id: String(userId),
                 customer_phone: String(mobileNo || "0000000000"),
                 customer_name: username || "Ludo Player"
             },
             order_meta: {
-                // Payment successfully hone ke baad return redirection path
                 return_url: "https://khelbhailudo.com/dashboard.html?order_id={order_id}"
             }
         };
 
         const response = await axios.post(cashfreeUrl, orderData, {
             headers: {
-                'x-client-id': process.env.CASHFREE_APP_ID,       // Render Env Configuration
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY, // Render Env Configuration
+                'x-client-id': process.env.CASHFREE_APP_ID,       
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY, 
                 'x-api-version': '2023-08-01',
                 'Content-Type': 'application/json'
             }
         });
 
-        // Send response containing active payment session ID back to front-end SDK
         res.json({ 
             success: true, 
             payment_session_id: response.data.payment_session_id, 
