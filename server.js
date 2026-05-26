@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-const cors = require('cors');
+const cors = require('cors'); 
 require('dotenv').config();
 
 const app = express();
@@ -25,24 +25,25 @@ const supabaseClientInstance = pool.supabase || global.supabase;
 
 
 // ========================================================
-// 🔥 ABSOLUTE 100% CORS FIX (EXPRESS V4/V5 SAFE PREFLIGHT OVERRIDE)
+// 🔒 CORS MULTI-ORIGIN CONFIGURATION LAYER & EXPRESS BYPASS
 // ========================================================
-
 const allowedOrigins = [
-    'https://khelbhailudo.com',
-    'https://www.khelbhailudo.com',
-    'https://khelobhailudo.github.io/khelbhailudo/',
-    'https://khelobhailudo.github.io',
-    'http://localhost:5500',
+    'https://khelbhailudo.com',                         // 🔥 AAPKA LIVE MAIN DOMAIN
+    'https://www.khelbhailudo.com',                     // www wala domain backup
+    'https://khelobhailudo.github.io/khelbhailudo/',    // 🔥 EXACT MATCH: Aapka current active site link
+    'https://khelobhailudo.github.io/khelbhailudo',     // Safe backup for clean sub-folder string
+    'https://khelobhailudo.github.io',                  // Root domain safe bypass
+    'http://localhost:5500',                            // Local testing
     'http://127.0.0.1:5500'
 ];
 
-// 1. Standard CORS Configuration
+// 1. Standard CORS Middleware Application
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
             callback(null, true);
         } else {
+            console.log("Blocked by CORS from origin structure:", origin);
             callback(new Error('Not allowed by CORS infrastructure'));
         }
     },
@@ -51,8 +52,8 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
-// 2. 🔥 FIXED WILDCARD PATTERN FOR EXPRESS (No PathError Crash)
-// Browser ki OPTIONS request ko server `(.*)` standard regex se '200 OK' bolkar bypass kar dega
+// 2. 🔥 FIXED EXPRESS V4/V5 PREFLIGHT OPTIONS BYPASS (NO CRASH)
+// Wildcard '*' ki jagah '(.*)' use kiya hai taaki path-to-regexp crash na kare
 app.options('(.*)', (req, res) => {
     const origin = req.headers.origin;
     if (origin && (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost'))) {
@@ -62,6 +63,66 @@ app.options('(.*)', (req, res) => {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
     res.header('Access-Control-Allow-Credentials', 'true');
     return res.sendStatus(200);
+});
+
+
+// Dynamic Memory Cache Allocation for OTP tracking
+const otpStore = {};
+
+
+// ========================================================
+// 💳 CASHFREE PRODUCTION ORDER CREATION ROUTE
+// ========================================================
+app.post('/api/payment/create-order', async (req, res) => {
+    try {
+        const { amount, userId, username, mobileNo } = req.body;
+
+        if (!amount || !userId) {
+            return res.status(400).json({ success: false, message: "Amount and User ID are required" });
+        }
+
+        // Cashfree Production Endpoint URL
+        const cashfreeUrl = "https://api.cashfree.com/pg/orders";
+
+        const orderData = {
+            order_amount: parseFloat(amount).toFixed(2),
+            order_currency: "INR",
+            order_id: `ORD_${Date.now()}_${userId}`, // Unique Dynamic Order ID Tracking
+            customer_details: {
+                customer_id: String(userId),
+                customer_phone: String(mobileNo || "0000000000"),
+                customer_name: username || "Ludo Player"
+            },
+            order_meta: {
+                // Payment successfully hone ke baad return redirection path
+                return_url: "https://khelbhailudo.com/dashboard.html?order_id={order_id}"
+            }
+        };
+
+        const response = await axios.post(cashfreeUrl, orderData, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_APP_ID,       // Render Env Configuration
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY, // Render Env Configuration
+                'x-api-version': '2023-08-01',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Send response containing active payment session ID back to front-end SDK
+        res.json({ 
+            success: true, 
+            payment_session_id: response.data.payment_session_id, 
+            order_id: response.data.order_id 
+        });
+
+    } catch (error) {
+        console.error("Cashfree Integration Critical Error:", error.response ? error.response.data : error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: "Gateway setup sequence failure response", 
+            error: error.response ? error.response.data : error.message 
+        });
+    }
 });
 
 
