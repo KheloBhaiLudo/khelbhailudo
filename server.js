@@ -27,7 +27,6 @@ const supabaseClientInstance = pool.supabase || global.supabase;
 // ========================================================
 // 🔒 INTERNAL RE-ROUTE: CORS POLICY FIXED FOR CUSTOM DOMAIN
 // ========================================================
-const cors = require('cors'); // Ensure top par header imported ho
 
 const allowedOrigins = [
     'https://khelbhailudo.com',                         // 🔥 Active Custom Domain
