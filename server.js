@@ -682,40 +682,55 @@ app.post('/api/withdraw/request', async (req, res) => {
 
 // UPIGateway Order Create
 // SIRF ISE RAKHEIN ✅
-app.post('/api/pay/create-order', async (req, res) => {
-    const { amount, userId } = req.body;
-    const client_txn_id = "TXN" + Date.now();
-
+app.post('/api/payment/create-order', async (req, res) => {
     try {
-        // Database se user ka asli mobile aur naam lein taaki gateway reject na kare
-        const userRes = await pool.query('SELECT full_name, mobile_no FROM users WHERE id = $1', [userId]);
-        const user = userRes.rows[0] || { full_name: "Ludo Player", mobile_no: "7079950417" };
+        const { amount, userId, username, mobileNo } = req.body;
 
-const response = await axios.post('https://api.ekqr.in/api/create_order', {
-    "key": "b306734d-dac5-48ce-bdd3-d08b8b7d7f38",
-    "client_txn_id": client_txn_id,
-    "amount": amount.toString(),
-    "p_info": "Wallet Topup",
-    "customer_name": user.full_name.substring(0, 15),
-    "customer_email": "user@gmail.com",
-    "customer_mobile": user.mobile_no.replace(/\D/g, "").slice(-10),
-    "redirect_url": "https:// KheloBhaiLudo.github.io/dashboard.html", // Yahan comma dekho
-    "udf1": userId.toString() // Is line se pehle comma missing tha!
-});
-
-        console.log("UPIGateway Response:", response.data);
-
-        if (response.data && response.data.status === true) {
-            res.json({ success: true, payment_data: response.data.data });
-        } else {
-            res.status(400).json({ 
-                success: false, 
-                error: response.data.msg || "Gateway Error" 
-            });
+        if (!amount || !userId) {
+            return res.status(400).json({ success: false, message: "Amount and User ID are required" });
         }
-    } catch (err) {
-        console.error("Gateway Error:", err.response ? err.response.data : err.message);
-        res.status(500).json({ success: false, error: "Gateway Busy or Connection Fail" });
+
+        // Cashfree Production API URL
+        const cashfreeUrl = "https://api.cashfree.com/pg/orders";
+
+        const orderData = {
+            order_amount: parseFloat(amount).toFixed(2),
+            order_currency: "INR",
+            order_id: `ORD_${Date.now()}_${userId}`, // Dynamic Unique Order ID
+            customer_details: {
+                customer_id: String(userId),
+                customer_phone: String(mobileNo || "0000000000"),
+                customer_name: username || "Ludo Player"
+            },
+            order_meta: {
+                // Settle hone ke baad user wapas is page par aayega
+                return_url: "https://khelobhailudo.github.io/khelbhailudo/dashboard.html?order_id={order_id}"
+            }
+        };
+
+        const response = await axios.post(cashfreeUrl, orderData, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_APP_ID,       // Render Environment Variable
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY, // Render Environment Variable
+                'x-api-version': '2023-08-01',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Sending successful session payload to checkout client
+        res.json({ 
+            success: true, 
+            payment_session_id: response.data.payment_session_id, 
+            order_id: response.data.order_id 
+        });
+
+    } catch (error) {
+        console.error("Cashfree API Execution Error:", error.response ? error.response.data : error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: "Gateway sequence response failed", 
+            error: error.response ? error.response.data : error.message 
+        });
     }
 });
 
