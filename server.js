@@ -5,7 +5,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-const cors = require('cors'); 
 require('dotenv').config();
 
 const app = express();
@@ -25,34 +24,45 @@ const supabaseClientInstance = pool.supabase || global.supabase;
 
 
 // ========================================================
-// 🔒 INTERNAL RE-ROUTE: CORS POLICY FIXED FOR CUSTOM DOMAIN
+// 🔥 ABSOLUTE 100% CORS FIX (PREFLIGHT OVERRIDE)
 // ========================================================
+const cors = require('cors');
 
 const allowedOrigins = [
-    'https://khelbhailudo.com',                         // 🔥 Active Custom Domain
-    'https://www.khelbhailudo.com',                     // www backup routing
-    'https://khelobhailudo.github.io/khelbhailudo/',    // Sub-folder mapping layout
-    'https://khelobhailudo.github.io',                  // GitHub profile root link
+    'https://khelbhailudo.com',
+    'https://www.khelbhailudo.com',
+    'https://khelobhailudo.github.io/khelbhailudo/',
+    'https://khelobhailudo.github.io',
     'http://localhost:5500',
     'http://127.0.0.1:5500'
 ];
 
-const corsOptions = {
+// 1. Standard CORS Configuration
+app.use(cors({
     origin: function (origin, callback) {
-        // Agar request local ho ya allowed list mein ho
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
             callback(null, true);
         } else {
-            console.log("Blocked by CORS from origin structure:", origin);
             callback(new Error('Not allowed by CORS infrastructure'));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-};
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 
-app.use(cors(corsOptions));
+// 2. 🔥 MANDATORY PREFLIGHT HANDLER (Yeh sabse important hai)
+// Browser ki OPTIONS request ko server yahin se '200 OK' bolkar bypass kar dega
+app.options('*', (req, res) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    return res.sendStatus(200);
+});
 
 
 // --- DATABASE TABLES INITIALIZATION ---
