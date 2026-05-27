@@ -138,7 +138,7 @@ app.post('/api/payment/create-order', async (req, res) => {
 // ========================================================
 app.post('/api/payment/webhook', async (req, res) => {
     try {
-        // Cashfree automatic object payload bhejta hai encryption response ke sath
+        // Cashfree webhook ka main response body
         const { data } = req.body;
         
         if (!data || !data.order || !data.payment) {
@@ -148,17 +148,17 @@ app.post('/api/payment/webhook', async (req, res) => {
         const orderInfo = data.order;
         const paymentInfo = data.payment;
 
-        // Agar payment 100% SUCCESS/PAID hai
+        // Jab payment completely SUCCESS ho jaye
         if (orderInfo.order_status === "PAID" && paymentInfo.payment_status === "SUCCESS") {
             const amount = parseFloat(orderInfo.order_amount);
             const orderId = orderInfo.order_id;
             
-            // order_id syntax se userId nikaali: ORD_timestamp_userId
+            // ORD_timestamp_userId se userId extract ki
             const userId = orderId.split('_')[2];
 
-            console.log(`[Payment Success Webhook Triggered]: User ${userId} paid ₹${amount}`);
+            console.log(`[Webhook Cashfree]: Crediting ₹${amount} to User ID: ${userId}`);
 
-            // 1. Supabase se user ka current wallet balance nikalte hain
+            // 1. Supabase se current balance nikalo
             const { data: user, error: fetchError } = await supabaseClientInstance
                 .from('users')
                 .select('wallet_balance')
@@ -167,11 +167,10 @@ app.post('/api/payment/webhook', async (req, res) => {
 
             if (fetchError) throw fetchError;
 
-            // 2. Naya balance calculate kiya
             const currentBalance = parseFloat(user.wallet_balance || 0);
             const newBalance = currentBalance + amount;
 
-            // 3. Database mein wallet update kar diya
+            // 2. Database mein final value update karo
             const { error: updateError } = await supabaseClientInstance
                 .from('users')
                 .update({ wallet_balance: newBalance })
@@ -179,19 +178,20 @@ app.post('/api/payment/webhook', async (req, res) => {
 
             if (updateError) throw updateError;
 
-            console.log(`Successfully credited ₹${amount} to User ID: ${userId}`);
+            console.log(`[Success]: Wallet updated successfully for user ${userId}`);
             
-            // Cashfree ko '200 OK' bhejna zaroori hai, nahi toh wo baar-baar request bhejega
+            // Cashfree ko success acknowledge bhejiyo, varna wo fail manega
             return res.status(200).send("OK");
         }
 
-        res.status(200).send("Payment not marked as PAID");
+        res.status(200).send("Payment pending or failed status");
 
     } catch (error) {
-        console.error("Critical Webhook Database Error:", error);
-        res.status(500).send("Internal Server Webhook Error");
+        console.error("Critical Webhook DB Error:", error.message);
+        res.status(500).send("Internal Webhook Error");
     }
 });
+
 
 
 // --- DATABASE TABLES INITIALIZATION ---
