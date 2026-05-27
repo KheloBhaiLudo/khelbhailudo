@@ -75,7 +75,7 @@ const otpStore = {};
 
 
 // ========================================================
-// 💳 CASHFREE PRODUCTION ORDER CREATION ROUTE
+// 💳 CASHFREE PRODUCTION ORDER CREATION ROUTE (FIXED)
 // ========================================================
 app.post('/api/payment/create-order', async (req, res) => {
     try {
@@ -87,6 +87,9 @@ app.post('/api/payment/create-order', async (req, res) => {
 
         const cashfreeUrl = "https://api.cashfree.com/pg/orders";
 
+        // 🔥 AAPKA ASLI RENDER BACKEND URL (Dynamic Webhook Mapping Ke Liye)
+        const ASLI_RENDER_URL = "https://khelbhailudo.onrender.com";
+
         const orderData = {
             order_amount: parseFloat(amount).toFixed(2),
             order_currency: "INR",
@@ -97,7 +100,11 @@ app.post('/api/payment/create-order', async (req, res) => {
                 customer_name: username || "Ludo Player"
             },
             order_meta: {
-                return_url: "https://khelbhailudo.com/dashboard.html?order_id={order_id}"
+                // 1. User payment ke baad is page par redirect hoga
+                return_url: "https://khelbhailudo.com/dashboard.html?order_id={order_id}",
+                
+                // 2. 🔥 DYNAMIC NOTIFY URL (Dashboard default webhook override)
+                notify_url: `${ASLI_RENDER_URL}/api/payment/webhook`
             }
         };
 
@@ -123,6 +130,66 @@ app.post('/api/payment/create-order', async (req, res) => {
             message: "Gateway setup sequence failure response", 
             error: error.response ? error.response.data : error.message 
         });
+    }
+});
+
+// ========================================================
+// ⚡ CASHFREE WEBHOOK ROUTE (AUTOMATIC WALLET CREDIT)
+// ========================================================
+app.post('/api/payment/webhook', async (req, res) => {
+    try {
+        // Cashfree automatic object payload bhejta hai encryption response ke sath
+        const { data } = req.body;
+        
+        if (!data || !data.order || !data.payment) {
+            return res.status(400).send("Invalid Webhook Structure");
+        }
+
+        const orderInfo = data.order;
+        const paymentInfo = data.payment;
+
+        // Agar payment 100% SUCCESS/PAID hai
+        if (orderInfo.order_status === "PAID" && paymentInfo.payment_status === "SUCCESS") {
+            const amount = parseFloat(orderInfo.order_amount);
+            const orderId = orderInfo.order_id;
+            
+            // order_id syntax se userId nikaali: ORD_timestamp_userId
+            const userId = orderId.split('_')[2];
+
+            console.log(`[Payment Success Webhook Triggered]: User ${userId} paid ₹${amount}`);
+
+            // 1. Supabase se user ka current wallet balance nikalte hain
+            const { data: user, error: fetchError } = await supabaseClientInstance
+                .from('users')
+                .select('wallet_balance')
+                .eq('id', userId)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            // 2. Naya balance calculate kiya
+            const currentBalance = parseFloat(user.wallet_balance || 0);
+            const newBalance = currentBalance + amount;
+
+            // 3. Database mein wallet update kar diya
+            const { error: updateError } = await supabaseClientInstance
+                .from('users')
+                .update({ wallet_balance: newBalance })
+                .eq('id', userId);
+
+            if (updateError) throw updateError;
+
+            console.log(`Successfully credited ₹${amount} to User ID: ${userId}`);
+            
+            // Cashfree ko '200 OK' bhejna zaroori hai, nahi toh wo baar-baar request bhejega
+            return res.status(200).send("OK");
+        }
+
+        res.status(200).send("Payment not marked as PAID");
+
+    } catch (error) {
+        console.error("Critical Webhook Database Error:", error);
+        res.status(500).send("Internal Server Webhook Error");
     }
 });
 
