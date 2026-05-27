@@ -222,44 +222,31 @@
 </div>
 
     <script>
-        window.addEventListener('DOMContentLoaded', async () => {
-    // URL se order_id nikalne ke liye
+window.addEventListener('DOMContentLoaded', async () => {
+    // URL se Cashfree ka order_id nikalne ke liye
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('order_id');
 
     if (orderId) {
         console.log("Detecting Cashfree transaction logic for order:", orderId);
         
-        // Loader ya alert dikhao ki payment verify ho raha hai
-        const originalText = document.body.innerHTML;
+        // 1. URL se turant order_id hata do taaki page refresh karne par baar-baar loop na chale
+        window.history.replaceState({}, document.title, window.location.pathname);
         
-        try {
-            // Naye backend URL ke route par hit karo (Yahan apna asli Render URL use karna)
-            const BACKEND_URL = "https://khelbhailudo.onrender.com"; 
+        // 2. Ek chota sa loader ya toast message dikhao
+        alert("Processing: Aapka payment safe tarike se update ho raha hai. Kripya 2-5 seconds wait karein...");
 
-            const res = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: orderId })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                alert(`🎉 MUBARAK HO! ₹${data.amount} aapke account mein add kar diye gaye hain.`);
-                
-                // URL se order_id hata do taaki page refresh karne par baar baar balance add na ho
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // Yahan apna wallet refresh karne ka function call kar lo (jaise fetchUserData())
-                if (typeof fetchUserData === 'function') fetchUserData();
+        // 3. 3 seconds ka delay denge taaki Cashfree ka backend webhook pehle wallet update kar de
+        setTimeout(async () => {
+            // Yahan apna user data aur wallet balance refresh karne ka asli function call karo
+            if (typeof fetchUserData === 'function') {
+                await fetchUserData(); 
+                console.log("Wallet automatically refreshed via Webhook response system.");
             } else {
-                alert("Payment verify nahi ho saka ya pending hai.");
+                // Agar custom function nahi hai toh page reload kar do fresh balance ke liye
+                window.location.reload();
             }
-        } catch (err) {
-            console.error("Verification frontend error:", err);
-            alert("Payment verify karne mein dikkat aayi, kripya balance check karein.");
-        }
+        }, 3000); // 3 seconds timeout delay
     }
 });
         
