@@ -223,30 +223,44 @@
 
     <script>
 window.addEventListener('DOMContentLoaded', async () => {
-    // URL se Cashfree ka order_id nikalne ke liye
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('order_id');
 
     if (orderId) {
-        console.log("Detecting Cashfree transaction logic for order:", orderId);
+        console.log("Verifying transaction lifecycle for:", orderId);
         
-        // 1. URL se turant order_id hata do taaki page refresh karne par baar-baar loop na chale
+        // URL clean karo taaki reload loop na bane
         window.history.replaceState({}, document.title, window.location.pathname);
         
-        // 2. Ek chota sa loader ya toast message dikhao
-        alert("Processing: Aapka payment safe tarike se update ho raha hai. Kripya 2-5 seconds wait karein...");
+        alert("Processing: Payment verify ho raha hai, kripya page ko close na karein...");
 
-        // 3. 3 seconds ka delay denge taaki Cashfree ka backend webhook pehle wallet update kar de
-        setTimeout(async () => {
-            // Yahan apna user data aur wallet balance refresh karne ka asli function call karo
-            if (typeof fetchUserData === 'function') {
-                await fetchUserData(); 
-                console.log("Wallet automatically refreshed via Webhook response system.");
+        try {
+            // 🔥 APNA ASLI RE-ROUTE VERIFICATION CALL
+            const BACKEND_URL = "https://khelbhailudo.onrender.com"; 
+
+            // Hum 2 seconds wait karke direct server sync api bhejenge backup ke liye
+            const res = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                alert(`🎉 SATEEK FIXED! ₹${data.amount} aapke wallet mein add ho chuke hain.`);
+                if (typeof fetchUserData === 'function') await fetchUserData();
+                else window.location.reload();
             } else {
-                // Agar custom function nahi hai toh page reload kar do fresh balance ke liye
+                // Agar sync API immediate data na de toh thoda hold karke load karo
+                alert("Processing delayed: Check kar rahe hain, refresh karke wallet dekhein.");
                 window.location.reload();
             }
-        }, 3000); // 3 seconds timeout delay
+        } catch (err) {
+            console.error("Verification error:", err);
+            // Dynamic refresh fallback
+            window.location.reload();
+        }
     }
 });
         
