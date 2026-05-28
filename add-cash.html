@@ -108,18 +108,14 @@
                 if (data.success && data.payment_session_id) {
                     
                     // Cashfree Production Initialization Object
-                    const cashfree = Cashfree({ mode: "production" });
+const cashfree = Cashfree({ mode: "sandbox" });
 
-                    let checkoutOptions = {
-                        paymentSessionId: data.payment_session_id,
-                        redirectTarget: "_self" // Same window validation handling
-                    };
+let checkoutOptions = {
+    paymentSessionId: data.payment_session_id,
+    redirectTarget: "_self"
+};
 
-                    // Loader hataya aur screen par overlay popup launch kiya
-                    loader.style.display = 'none';
-                    btn.disabled = false;
-                    
-                    cashfree.checkout(checkoutOptions);
+cashfree.checkout(checkoutOptions);
 
                 } else {
                     alert("Payment Error: " + (data.message || "Gateway busy hai, thodi der baad koshish karein"));
