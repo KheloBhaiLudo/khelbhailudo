@@ -200,6 +200,48 @@ app.post('/api/payment/webhook', async (req, res) => {
 });
 
 
+// ========================================================
+// 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE
+// ========================================================
+app.post('/api/payment/verify-status', async (req, res) => {
+    try {
+        const { order_id } = req.body;
+        if (!order_id) return res.status(400).json({ success: false, message: "Order ID missing" });
+
+        // Dynamic Environment Base Routing for tracking parameters
+        const isSandbox = order_id.startsWith('ORD_');
+        const baseUrl = "https://api.cashfree.com/pg/orders";
+        const testUrl = "https://sandbox.cashfree.com/pg/orders";
+        
+        const finalUrl = `${testUrl}/${order_id}`; // Abhi sandbox test mode ke liye logic fallback
+
+        const response = await axios.get(finalUrl, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_APP_ID,
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+                'x-api-version': '2023-08-01'
+            }
+        });
+
+        if (response.data.order_status === "PAID") {
+            const amount = parseFloat(response.data.order_amount);
+            const userId = order_id.split('_')[2];
+
+            // Double check validation balance integration layer
+            const { data: user } = await supabaseClientInstance.from('users').select('wallet_balance').eq('id', userId).single();
+            const newBalance = parseFloat(user.wallet_balance || 0) + amount;
+
+            await supabaseClientInstance.from('users').update({ wallet_balance: newBalance }).eq('id', userId);
+
+            return res.json({ success: true, amount });
+        }
+        res.json({ success: false, message: "Order not paid yet" });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+
 // --- DATABASE TABLES INITIALIZATION ---
 const initDB = async () => {
     try {
