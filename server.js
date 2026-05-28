@@ -85,7 +85,7 @@ app.post('/api/payment/create-order', async (req, res) => {
             return res.status(400).json({ success: false, message: "Amount and User ID are required" });
         }
 
-        const cashfreeUrl = "https://api.cashfree.com/pg/orders";
+const cashfreeUrl = "https://sandbox.cashfree.com/pg/orders";
 
         // 🔥 AAPKA ASLI RENDER BACKEND URL (Dynamic Webhook Mapping Ke Liye)
         const ASLI_RENDER_URL = "https://khelbhailudo.onrender.com";
