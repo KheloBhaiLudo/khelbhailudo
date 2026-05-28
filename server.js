@@ -134,29 +134,38 @@ const cashfreeUrl = "https://sandbox.cashfree.com/pg/orders";
 });
 
 // ========================================================
-// ⚡ CASHFREE WEBHOOK ROUTE (AUTOMATIC WALLET CREDIT)
+// ⚡ FIX: BULLETPROOF CASHFREE WEBHOOK ROUTE (TEST + PROD)
 // ========================================================
 app.post('/api/payment/webhook', async (req, res) => {
     try {
-        // Cashfree webhook ka main response body
-        const { data } = req.body;
+        console.log("=== RAW WEBHOOK BODY RECEIVED ===", JSON.stringify(req.body));
+
+        // Test mode aur Production mode dono ke structures ko dynamic handle karne ke liye:
+        const webhookData = req.body.data || req.body;
         
-        if (!data || !data.order || !data.payment) {
+        if (!webhookData || (!webhookData.order && !webhookData.order_id)) {
+            console.log("Webhook validation failed: Structure missing");
             return res.status(400).send("Invalid Webhook Structure");
         }
 
-        const orderInfo = data.order;
-        const paymentInfo = data.payment;
+        // Object destructuring matching parsing layers
+        const orderInfo = webhookData.order || webhookData;
+        const paymentInfo = webhookData.payment || webhookData;
 
-        // Jab payment completely SUCCESS ho jaye
-        if (orderInfo.order_status === "PAID" && paymentInfo.payment_status === "SUCCESS") {
-            const amount = parseFloat(orderInfo.order_amount);
-            const orderId = orderInfo.order_id;
+        const orderStatus = orderInfo.order_status || orderInfo.txStatus;
+        const paymentStatus = paymentInfo.payment_status || orderInfo.txStatus;
+
+        // Sandbox mein status SUCCESS ya PAID dono ho sakta hai
+        if (orderStatus === "PAID" || orderStatus === "SUCCESS" || paymentStatus === "SUCCESS") {
+            const amount = parseFloat(orderInfo.order_amount || orderInfo.orderAmount);
+            const orderId = orderInfo.order_id || orderInfo.orderId;
             
+            if (!orderId) return res.status(400).send("Order ID not found in payload");
+
             // ORD_timestamp_userId se userId extract ki
             const userId = orderId.split('_')[2];
 
-            console.log(`[Webhook Cashfree]: Crediting ₹${amount} to User ID: ${userId}`);
+            console.log(`[Valid webhook execution]: Crediting ₹${amount} to User ID: ${userId}`);
 
             // 1. Supabase se current balance nikalo
             const { data: user, error: fetchError } = await supabaseClientInstance
@@ -170,7 +179,7 @@ app.post('/api/payment/webhook', async (req, res) => {
             const currentBalance = parseFloat(user.wallet_balance || 0);
             const newBalance = currentBalance + amount;
 
-            // 2. Database mein final value update karo
+            // 2. Database mein balance successfully update karo
             const { error: updateError } = await supabaseClientInstance
                 .from('users')
                 .update({ wallet_balance: newBalance })
@@ -178,20 +187,17 @@ app.post('/api/payment/webhook', async (req, res) => {
 
             if (updateError) throw updateError;
 
-            console.log(`[Success]: Wallet updated successfully for user ${userId}`);
-            
-            // Cashfree ko success acknowledge bhejiyo, varna wo fail manega
+            console.log(`[Success]: Wallet automatically credited for User ${userId}`);
             return res.status(200).send("OK");
         }
 
-        res.status(200).send("Payment pending or failed status");
+        res.status(200).send("Payment status not success");
 
     } catch (error) {
         console.error("Critical Webhook DB Error:", error.message);
         res.status(500).send("Internal Webhook Error");
     }
 });
-
 
 
 // --- DATABASE TABLES INITIALIZATION ---
