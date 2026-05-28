@@ -67,9 +67,8 @@
         </p>
     </div>
 
-    <script>
-        // Naye client ke deploy kiye hue backend URL se ise replace kar lena Praveen
-        const BACKEND_URL = "https://khelbhailudo.onrender.com";
+   <script>
+        const BACKEND_URL = "https://khel-bhai-luso-backend-service.onrender.com";
 
         function setAmt(val, element) {
             document.getElementById('customAmt').value = val;
@@ -80,11 +79,6 @@
         async function payWithUPIGateway() {
             const amount = document.getElementById('customAmt').value;
             const userId = localStorage.getItem('userId');
-            
-            // Safe backups for user profile mapping
-            const username = localStorage.getItem('username') || "Ludo Player";
-            const mobileNo = localStorage.getItem('mobileNo') || "0000000000";
-
             const btn = document.getElementById('payBtn');
             const loader = document.getElementById('loader');
 
@@ -95,81 +89,28 @@
                 btn.disabled = true;
                 loader.style.display = 'flex';
 
-                // 🔥 1. Naye Cashfree Route Par Request Bheji
-                const res = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
+                const res = await fetch(`${BACKEND_URL}/api/pay/create-order`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, userId, username, mobileNo })
+                    body: JSON.stringify({ amount, userId })
                 });
                 
                 const data = await res.json();
 
-// 🔥 100% WORKING INSTANT TOKEN UPDATE FRONTEND HANDLER
-if (data.success && data.payment_session_id) {
-    const cashfree = Cashfree({ mode: "sandbox" }); // Test ke baad production kar dena
-
-    let checkoutOptions = {
-        paymentSessionId: data.payment_session_id,
-        redirectTarget: "_modal" // UI ko popup modal format mein load karega
-    };
-
-    // 🔥 FIXED: Cashfree V3 SDK Ka official integrated callback component trigger
-    cashfree.checkout(checkoutOptions).then(async function(result) {
-        // Condition A: Agar user ne popup ka cut/close button daba diya ya error aaya
-        if (result.error) {
-            console.log("Payment flow interrupted:", result.error.message);
-            alert(result.error.message);
-            loader.style.display = 'none';
-        }
-        
-        // Condition B: Safe redirection tracking fallback
-        if (result.redirect) {
-            console.log("Redirection flow triggered internally");
-        }
-
-        // Condition C: 🔥 MODAL PAYMENT STATUS VERIFICATION MECHANISM
-        // Jab user modal band karega ya transaction complete hoga, tab ye status check chalega
-        if (result.paymentDetails) {
-            const paymentStatus = result.paymentDetails.paymentStatus;
-            
-            if (paymentStatus === "SUCCESS") {
-                loader.style.display = 'flex';
-                loader.querySelector('p').innerText = "Token verified! Adding cash to wallet...";
-
-                try {
-                    // Instantly backend verification endpoint par request bhejte hain
-                    const tokenRes = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            order_id: data.order_id // We pass the exact unique order reference
-                        })
-                    });
-
-                    const tokenData = await tokenRes.json();
-
-                    if (tokenData.success) {
-                        alert(`🎉 INSTANT SUCCESS! ₹${amount} aapke deposit wallet mein add ho gaye hain.`);
-                        // Direct main dashboard par redirect kar do fresh balance load karne ke liye
-                        window.location.href = "dashboard.html";
-                    } else {
-                        alert("Token validation pending: Apne dashboard ko refresh karke balance dekhein.");
-                        window.location.href = "dashboard.html";
-                    }
-                } catch (err) {
-                    console.error("Token settle error:", err);
-                    alert("Network processing chal rahi hai, balance dashboard par check karein.");
-                    window.location.href = "dashboard.html";
-                } finally {
+                if (data.success && data.payment_data && data.payment_data.payment_url) {
+                    window.location.href = data.payment_data.payment_url;
+                } else {
+                    alert("Payment Error: " + (data.error || "Gateway busy hai, thodi der baad koshish karein"));
                     loader.style.display = 'none';
+                    btn.disabled = false;
                 }
-            } else {
-                alert(`Payment Status: ${paymentStatus || 'Interrupted/Failed'}`);
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                alert("Server connect nahi ho raha hai.");
                 loader.style.display = 'none';
+                btn.disabled = false;
             }
         }
-    });
-}
     </script>
 </body>
 </html>
