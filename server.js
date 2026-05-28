@@ -1344,59 +1344,6 @@ app.delete('/api/admin/user/delete/:id', async (req, res) => {
 });
 
 
-// ========================================================
-// ⚡ FAST TOKEN INTEGRATION: INSTANT WALLET CREDIT ENGINE
-// ========================================================
-app.post('/api/payment/instant-credit', async (req, res) => {
-    try {
-        const { amount, userId, orderId } = req.body;
-
-        if (!amount || !userId) {
-            return res.status(400).json({ success: false, message: "Parameters missing for token validation" });
-        }
-
-        console.log(`[Instant Token Credit Request]: User ${userId} requested ₹${amount} for order ${orderId}`);
-
-        // 1. Supabase se user ka current deposit wallet balance fetch karo
-        const { data: user, error: fetchError } = await supabaseClientInstance
-            .from('users')
-            .select('wallet_balance')
-            .eq('id', userId)
-            .single();
-
-        if (fetchError) {
-            console.error("Supabase User Fetch Error:", fetchError.message);
-            return res.status(500).json({ success: false, message: "User not found in Supabase database" });
-        }
-
-        const currentBalance = parseFloat(user.wallet_balance || 0);
-        const newBalance = currentBalance + parseFloat(amount);
-
-        // 2. Supabase mein instant naya balance update karo
-        const { error: updateError } = await supabaseClientInstance
-            .from('users')
-            .update({ wallet_balance: newBalance })
-            .eq('id', userId);
-
-        if (updateError) {
-            console.error("Supabase Update Balance Error:", updateError.message);
-            return res.status(500).json({ success: false, message: "Database balance update failed" });
-        }
-
-        console.log(`[Token Settled Successfully]: Credited ₹${amount} to User ID ${userId}. New Balance: ₹${newBalance}`);
-        
-        return res.json({ 
-            success: true, 
-            message: "Wallet balance updated instantly via token coupon logic",
-            new_balance: newBalance 
-        });
-
-    } catch (error) {
-        console.error("Critical Token Engine Error:", error.message);
-        return res.status(500).json({ success: false, message: "Internal server token execution failed" });
-    }
-});
-
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
