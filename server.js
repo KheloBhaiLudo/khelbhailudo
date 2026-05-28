@@ -134,13 +134,12 @@ const cashfreeUrl = "https://sandbox.cashfree.com/pg/orders";
 });
 
 // ========================================================
-// ⚡ FIX: BULLETPROOF CASHFREE WEBHOOK ROUTE (TEST + PROD)
+// ⚡ FINAL BULLETPROOF CASHFREE WEBHOOK ROUTE (100% FIXED)
 // ========================================================
 app.post('/api/payment/webhook', async (req, res) => {
     try {
         console.log("=== RAW WEBHOOK BODY RECEIVED ===", JSON.stringify(req.body));
 
-        // Test mode aur Production mode dono ke structures ko dynamic handle karne ke liye:
         const webhookData = req.body.data || req.body;
         
         if (!webhookData || (!webhookData.order && !webhookData.order_id)) {
@@ -148,14 +147,12 @@ app.post('/api/payment/webhook', async (req, res) => {
             return res.status(400).send("Invalid Webhook Structure");
         }
 
-        // Object destructuring matching parsing layers
         const orderInfo = webhookData.order || webhookData;
         const paymentInfo = webhookData.payment || webhookData;
 
         const orderStatus = orderInfo.order_status || orderInfo.txStatus;
         const paymentStatus = paymentInfo.payment_status || orderInfo.txStatus;
 
-        // Sandbox mein status SUCCESS ya PAID dono ho sakta hai
         if (orderStatus === "PAID" || orderStatus === "SUCCESS" || paymentStatus === "SUCCESS") {
             const amount = parseFloat(orderInfo.order_amount || orderInfo.orderAmount);
             const orderId = orderInfo.order_id || orderInfo.orderId;
@@ -167,27 +164,24 @@ app.post('/api/payment/webhook', async (req, res) => {
 
             console.log(`[Valid webhook execution]: Crediting ₹${amount} to User ID: ${userId}`);
 
-            // 1. Supabase se current balance nikalo
-            const { data: user, error: fetchError } = await supabaseClientInstance
-                .from('users')
-                .select('wallet_balance')
-                .eq('id', userId)
-                .single();
+            // 🔥 DIRECT POSTGRESQL POOL QUERY (No Supabase client dependency error)
+            // Pehle user ka purana balance aur data fetch karte hain direct pool se
+            const userQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1', [userId]);
+            
+            if (userQuery.rows.length === 0) {
+                console.log(`User ID ${userId} not found in database.`);
+                return res.status(404).send("User not found");
+            }
 
-            if (fetchError) throw fetchError;
-
-            const currentBalance = parseFloat(user.wallet_balance || 0);
+            const currentBalance = parseFloat(userQuery.rows[0].wallet_balance || 0);
             const newBalance = currentBalance + amount;
 
-            // 2. Database mein balance successfully update karo
-            const { error: updateError } = await supabaseClientInstance
-                .from('users')
-                .update({ wallet_balance: newBalance })
-                .eq('id', userId);
+            // Database mein user ka naya deposit balance update karte hain
+            await pool.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
 
-            if (updateError) throw updateError;
-
-            console.log(`[Success]: Wallet automatically credited for User ${userId}`);
+            console.log(`[Success]: ₹${amount} successfully added to User ${userId}. New Balance: ₹${newBalance}`);
+            
+            // Cashfree ko success confirm bhejna zaroori hai
             return res.status(200).send("OK");
         }
 
@@ -201,19 +195,15 @@ app.post('/api/payment/webhook', async (req, res) => {
 
 
 // ========================================================
-// 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE
+// 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE (100% FIXED)
 // ========================================================
 app.post('/api/payment/verify-status', async (req, res) => {
     try {
         const { order_id } = req.body;
         if (!order_id) return res.status(400).json({ success: false, message: "Order ID missing" });
 
-        // Dynamic Environment Base Routing for tracking parameters
-        const isSandbox = order_id.startsWith('ORD_');
-        const baseUrl = "https://api.cashfree.com/pg/orders";
         const testUrl = "https://sandbox.cashfree.com/pg/orders";
-        
-        const finalUrl = `${testUrl}/${order_id}`; // Abhi sandbox test mode ke liye logic fallback
+        const finalUrl = `${testUrl}/${order_id}`;
 
         const response = await axios.get(finalUrl, {
             headers: {
@@ -227,13 +217,13 @@ app.post('/api/payment/verify-status', async (req, res) => {
             const amount = parseFloat(response.data.order_amount);
             const userId = order_id.split('_')[2];
 
-            // Double check validation balance integration layer
-            const { data: user } = await supabaseClientInstance.from('users').select('wallet_balance').eq('id', userId).single();
-            const newBalance = parseFloat(user.wallet_balance || 0) + amount;
-
-            await supabaseClientInstance.from('users').update({ wallet_balance: newBalance }).eq('id', userId);
-
-            return res.json({ success: true, amount });
+            // Direct postgres pool sync query
+            const userQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1', [userId]);
+            if (userQuery.rows.length > 0) {
+                const newBalance = parseFloat(userQuery.rows[0].wallet_balance || 0) + amount;
+                await pool.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
+                return res.json({ success: true, amount });
+            }
         }
         res.json({ success: false, message: "Order not paid yet" });
     } catch (e) {
