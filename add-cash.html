@@ -104,31 +104,68 @@
                 
                 const data = await res.json();
 
-                // 🔥 2. Cashfree SDK Modal Gateway Checkout Execution
-                if (data.success && data.payment_session_id) {
-                    
-                    // Cashfree Production Initialization Object
-const cashfree = Cashfree({ mode: "sandbox" });
+// 🔥 INSTANT TOKEN UPDATE FRONTEND HANDLER
+if (data.success && data.payment_session_id) {
+    const cashfree = Cashfree({ mode: "sandbox" }); // Test mode ke liye sandbox, baad mein production kar dena
 
-let checkoutOptions = {
-    paymentSessionId: data.payment_session_id,
-    redirectTarget: "_self"
-};
+    let checkoutOptions = {
+        paymentSessionId: data.payment_session_id,
+        // UI ko popup modal format mein load karega bina page redirect kiye
+        redirectTarget: "_modal" 
+    };
 
-cashfree.checkout(checkoutOptions);
+    // Payment window open karo aur response ka wait karo
+    cashfree.checkout(checkoutOptions).then(async function(result) {
+        if(result.error) {
+            // Agar user ne cancel kiya ya fail hua
+            alert(result.error.message);
+            loader.style.display = 'none';
+        }
+        if(result.redirect) {
+            console.log("Redirection fallback triggered");
+        }
+    });
 
+    // 🔥 2. CASHFREE INSIDE POPUP CALLBACK CHECKER
+    // Jaise hi user Simulator par "SUCCESS" click karega, ye callback instantly chalega!
+    window.addEventListener('message', async function(event) {
+        // Cashfree payment success event catch kiya
+        if (event.data && event.data.type === "PAYMENT_RESPONSE" && event.data.status === "SUCCESS") {
+            
+            loader.style.display = 'flex';
+            loader.querySelector('p').innerText = "Token verified! Adding cash to wallet...";
+
+            try {
+                // Instantly backend par balance credit ka token request bhejo
+                const tokenRes = await fetch(`${BACKEND_URL}/api/payment/instant-credit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: amount,
+                        userId: userId,
+                        orderId: data.order_id
+                    })
+                });
+
+                const tokenData = await tokenRes.json();
+
+                if (tokenData.success) {
+                    alert(`🎉 INSTANT SUCCESS! ₹${amount} aapke deposit wallet mein add ho gaye hain.`);
+                    // Direct main dashboard par bhej do jahan fresh balance dikhega
+                    window.location.href = "dashboard.html";
                 } else {
-                    alert("Payment Error: " + (data.message || "Gateway busy hai, thodi der baad koshish karein"));
-                    loader.style.display = 'none';
-                    btn.disabled = false;
+                    alert("Token validation failed on server: " + tokenData.message);
                 }
             } catch (err) {
-                console.error("Fetch Error:", err);
-                alert("Server connect nahi ho raha hai.");
+                console.error("Token settle error:", err);
+                alert("Network slow hai, balance manually verify karein.");
+            } finally {
                 loader.style.display = 'none';
-                btn.disabled = false;
             }
         }
+    });
+
+}
     </script>
 </body>
 </html>
