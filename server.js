@@ -957,7 +957,7 @@ app.post('/api/webhook/upigateway', async (req, res) => {
 // 1. Admin Login Verification
 app.post('/api/admin/login', (req, res) => {
     const { password } = req.body;
-    const ADMIN_PASSWORD = "Praveen@123"; // Aap ise yahan se badal sakte hain
+    const ADMIN_PASSWORD = "Ludo@2026Hemraj"; // Aap ise yahan se badal sakte hain
 
     if (password === ADMIN_PASSWORD) {
         res.json({ success: true, token: "ADMIN_SESSION_ACTIVE" });
