@@ -6,7 +6,6 @@
     <title>Add Cash - UPI Gateway</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- 🔥 CASHFREE OFFICIAL WEB SDK V3 ADDED -->
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
     <style>
@@ -79,6 +78,9 @@
         async function payWithUPIGateway() {
             const amount = document.getElementById('customAmt').value;
             const userId = localStorage.getItem('userId');
+            const username = localStorage.getItem('username') || "Ludo Player";
+            const mobileNo = localStorage.getItem('mobileNo') || "0000000000";
+
             const btn = document.getElementById('payBtn');
             const loader = document.getElementById('loader');
 
@@ -89,18 +91,69 @@
                 btn.disabled = true;
                 loader.style.display = 'flex';
 
-                const res = await fetch(`${BACKEND_URL}/api/pay/create-order`, {
+                // 🔥 FIXED PATH: Changed from /api/pay/create-order to /api/payment/create-order
+                const res = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, userId })
+                    body: JSON.stringify({ amount, userId, username, mobileNo })
                 });
                 
                 const data = await res.json();
 
-                if (data.success && data.payment_data && data.payment_data.payment_url) {
-                    window.location.href = data.payment_data.payment_url;
+                // 🔥 FIXED FLOW: Native Cashfree SDK V3 Integration Handler
+                if (data.success && data.payment_session_id) {
+                    
+                    // Sandbox Testing Mode. Production live ke waqt isko "production" kar dena.
+                    const cashfree = Cashfree({ mode: "sandbox" }); 
+
+                    let checkoutOptions = {
+                        paymentSessionId: data.payment_session_id,
+                        redirectTarget: "_modal" 
+                    };
+
+                    loader.style.display = 'none';
+                    btn.disabled = false;
+
+                    // Open popup and wait for status execution response
+                    cashfree.checkout(checkoutOptions).then(async function(result) {
+                        if (result.error) {
+                            alert(result.error.message);
+                        }
+                        
+                        if (result.paymentDetails) {
+                            const paymentStatus = result.paymentDetails.paymentStatus;
+                            if (paymentStatus === "SUCCESS") {
+                                loader.style.display = 'flex';
+                                loader.querySelector('p').innerText = "Verifying transaction balance...";
+                                
+                                // Direct sync checker logic trigger
+                                try {
+                                    const tokenRes = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ order_id: data.order_id })
+                                    });
+                                    const tokenData = await tokenRes.json();
+                                    
+                                    if (tokenData.success) {
+                                        alert(`🎉 SUCCESS! ₹${amount} aapke deposit wallet mein add ho gaye hain.`);
+                                        window.location.href = "dashboard.html";
+                                    } else {
+                                        alert("Processing delayed: Refresh karke dashboard balance check karein.");
+                                        window.location.href = "dashboard.html";
+                                    }
+                                } catch (syncErr) {
+                                    console.error("Instant credit verify error:", syncErr);
+                                    window.location.href = "dashboard.html";
+                                }
+                            } else {
+                                alert(`Transaction status: ${paymentStatus}`);
+                            }
+                        }
+                    });
+
                 } else {
-                    alert("Payment Error: " + (data.error || "Gateway busy hai, thodi der baad koshish karein"));
+                    alert("Payment Error: " + (data.message || "Gateway busy hai, thodi der baad koshish karein"));
                     loader.style.display = 'none';
                     btn.disabled = false;
                 }
