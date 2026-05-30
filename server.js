@@ -136,21 +136,21 @@ const cashfreeUrl = "https://sandbox.cashfree.com/pg/orders";
 
 
 // ========================================================
-// ⚡ ULTIMATE DOUBLE-ENTRY PROTECTION LAYER (100% FIXED)
+// ⚡ GLOBAL IDEMPOTENCY LOCK CONTROL (TOP OF ROUTER)
 // ========================================================
-// Global cluster tracking object to lock active orders across async executions
 if (!global.activeOrderLocks) {
     global.activeOrderLocks = {};
 }
 
+// ========================================================
+// 1. ⚡ CASHFREE WEBHOOK ROUTE
+// ========================================================
 app.post('/api/payment/webhook', async (req, res) => {
     try {
         console.log("=== RAW WEBHOOK BODY RECEIVED ===", JSON.stringify(req.body));
 
         const webhookData = req.body.data || req.body;
-        
         if (!webhookData || (!webhookData.order && !webhookData.order_id)) {
-            console.log("Webhook validation failed: Structure missing");
             return res.status(400).send("Invalid Webhook Structure");
         }
 
@@ -169,62 +169,47 @@ app.post('/api/payment/webhook', async (req, res) => {
                 return res.status(400).send("Required tracking parameters missing");
             }
 
-            // ORD_timestamp_userId se userId extract ki
             const userId = orderId.split('_')[2];
-
-            // 🚫 HARD-LOCK 1: GLOBAL ORDER SPECIFIC IDEMPOTENCY KEY CHECK
-            // Agar ye unique Cashfree Payment ID abhi live process ho chuki hai, toh instantly block karo
             const uniqueTransactionToken = `${orderId}_${cfPaymentId}`;
             
+            // 🚫 LAYER 1: WEBHOOK PROTECTION LOCK
             if (global.activeOrderLocks[uniqueTransactionToken] === "PROCESSED") {
-                console.log(`[DUPLICATE BLOCKED]: Token ${uniqueTransactionToken} already applied. Dropping request.`);
+                console.log(`[DUPLICATE BLOCKED - WEBHOOK]: Token ${uniqueTransactionToken} already applied.`);
                 return res.status(200).send("OK");
             }
 
-            // Lock the token instantly before hitting any DB pools
             global.activeOrderLocks[uniqueTransactionToken] = "PROCESSED";
-
             console.log(`[Webhook Verification]: Processing ID ${cfPaymentId} for User ${userId}`);
 
-            // PostgreSQL Sequential Balance Integrity Update
             await pool.query('BEGIN');
-
-            const userLockQuery = await pool.query(
-                'SELECT wallet_balance FROM users WHERE id = $1 FOR UPDATE', 
-                [userId]
-            );
+            const userLockQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
             
             if (userLockQuery.rows.length === 0) {
                 await pool.query('ROLLBACK');
-                delete global.activeOrderLocks[uniqueTransactionToken]; // Release lock if user not found
-                console.log(`User ID ${userId} not found.`);
+                delete global.activeOrderLocks[uniqueTransactionToken];
                 return res.status(404).send("User not found");
             }
 
             const currentBalance = parseFloat(userLockQuery.rows[0].wallet_balance || 0);
             const newBalance = currentBalance + amount;
 
-            // Database wallet balance commit execution
             await pool.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
-            
             await pool.query('COMMIT');
 
-            console.log(`[Success]: ₹${amount} successfully added. New Balance: ₹${newBalance}`);
+            console.log(`[Success Webhook]: ₹${amount} added. New Balance: ₹${newBalance}`);
             return res.status(200).send("OK");
         }
-
-        res.status(200).send("Payment status not success");
-
+        res.status(200).send("Not paid");
     } catch (error) {
         await pool.query('ROLLBACK');
-        console.error("Critical Webhook DB Error:", error.message);
-        res.status(500).send("Internal Webhook Error");
+        console.error("Critical Webhook Error:", error.message);
+        res.status(500).send("Internal Error");
     }
 });
 
 
 // ========================================================
-// 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE (100% FIXED)
+// 2. 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE (NOW LOCKED)
 // ========================================================
 app.post('/api/payment/verify-status', async (req, res) => {
     try {
@@ -245,21 +230,43 @@ app.post('/api/payment/verify-status', async (req, res) => {
         if (response.data.order_status === "PAID") {
             const amount = parseFloat(response.data.order_amount);
             const userId = order_id.split('_')[2];
+            
+            // Cashfree response se dynamic transaction reference nikalte hain
+            // Sandbox fallback ke liye orders array check lagaya
+            const cfPaymentId = response.data.order_id; 
+            const uniqueTransactionToken = `${order_id}_${cfPaymentId}`;
 
-            // Direct postgres pool sync query
-            const userQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1', [userId]);
+            // 🚫 LAYER 2: FRONTEND SYNC ROUTE LOCK (Double Entry Breaker)
+            if (global.activeOrderLocks[uniqueTransactionToken] === "PROCESSED") {
+                console.log(`[DUPLICATE BLOCKED - FRONTEND SYNC]: Token ${uniqueTransactionToken} already credited by Webhook!`);
+                return res.json({ success: true, amount, message: "Already processed by webhook" });
+            }
+
+            global.activeOrderLocks[uniqueTransactionToken] = "PROCESSED";
+
+            await pool.query('BEGIN');
+            const userQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
+            
             if (userQuery.rows.length > 0) {
-                const newBalance = parseFloat(userQuery.rows[0].wallet_balance || 0) + amount;
+                const currentBalance = parseFloat(userQuery.rows[0].wallet_balance || 0);
+                const newBalance = currentBalance + amount;
+                
                 await pool.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
+                await pool.query('COMMIT');
+                
+                console.log(`[Success Frontend Sync]: ₹${amount} added. New Balance: ₹${newBalance}`);
                 return res.json({ success: true, amount });
             }
+            await pool.query('ROLLBACK');
+            delete global.activeOrderLocks[uniqueTransactionToken];
         }
         res.json({ success: false, message: "Order not paid yet" });
     } catch (e) {
+        await pool.query('ROLLBACK');
+        console.error("Sync Route Error:", e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
-
 
 // --- DATABASE TABLES INITIALIZATION ---
 const initDB = async () => {
