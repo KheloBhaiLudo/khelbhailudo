@@ -101,7 +101,7 @@
 
             if (data.success && data.payment_session_id) {
                 // Sandbox Testing Mode. Production live ke waqt isko "production" kar dena.
-                const cashfree = Cashfree({ mode: "sandbox" }); 
+                const cashfree = Cashfree({ mode: "production" }); 
 
                 let checkoutOptions = {
                     paymentSessionId: data.payment_session_id,
