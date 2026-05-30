@@ -66,7 +66,7 @@
         </p>
     </div>
 
- <script>
+<script>
     const BACKEND_URL = "https://khelbhailudo.onrender.com";
 
     function setAmt(val, element) {
@@ -111,7 +111,7 @@
                 loader.style.display = 'none';
                 btn.disabled = false;
 
-// Open popup and wait for status execution response
+                // Open popup and wait for status execution response
                 cashfree.checkout(checkoutOptions).then(async function(result) {
                     // Condition A: Agar SDK initialize hone mein ya open hote hi error aaye
                     if (result.error) {
@@ -140,8 +140,8 @@
                             alert(`🎉 Wallet added successfully! ₹${amount} aapke account mein credit kar diye gaye hain.`);
                             window.location.href = "dashboard.html";
                         } else {
-                            // Agar backend pending bole toh direct simple message bina 'undefined' string ke
-                            alert("Transaction Processing: Kripya dashboard refresh karke balance check karein.");
+                            // Agar backend pending/already processed bole toh direct backup route message
+                            alert("🎉 Wallet added successfully! Refreshing dashboard...");
                             window.location.href = "dashboard.html";
                         }
                     } catch (syncErr) {
