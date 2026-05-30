@@ -212,7 +212,7 @@ app.post('/api/payment/verify-status', async (req, res) => {
         const { order_id } = req.body;
         if (!order_id) return res.status(400).json({ success: false, message: "Order ID missing" });
 
-        const testUrl = "https://sandbox.cashfree.com/pg/orders";
+        const testUrl = "https://api.cashfree.com/pg/orders";
         const finalUrl = `${testUrl}/${order_id}`;
 
         const response = await axios.get(finalUrl, {
