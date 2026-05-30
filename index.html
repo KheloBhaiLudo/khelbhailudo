@@ -51,12 +51,11 @@
 <div id="regModal" class="modal">
     <div class="modal-content">
         <h3>Create New Account</h3>
-        <input type="text" id="regName" placeholder="Full Name (as per Aadhaar)">
+        <input type="text" id="regName" placeholder="Full Name">
         <input type="email" id="regEmail" placeholder="Email Address">
         <input type="number" id="regMobile" placeholder="Mobile Number">
         <input type="text" id="regUser" placeholder="Choose Username">
         <input type="password" id="regPass" placeholder="Set Password">
-    
         
         <button id="regBtn" onclick="submitRegistration()">Save & Register</button>
         <button style="background:#444; margin-top:10px;" onclick="toggleModal('regModal', false)">Cancel</button>
@@ -164,13 +163,6 @@ async function verifyFast2SMS_Login() {
     async function submitRegistration() {
         const btn = document.getElementById('regBtn');
         
-        // Strict Input Element Targeting Layer
-        const frontInput = document.getElementById('aadhaarFront');
-        const backInput = document.getElementById('aadhaarBack');
-        
-        const frontFile = frontInput && frontInput.files ? frontInput.files[0] : null;
-        const backFile = backInput && backInput.files ? backInput.files[0] : null;
-
         const fullName = document.getElementById('regName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
         const mobile = document.getElementById('regMobile').value.trim();
@@ -180,7 +172,6 @@ async function verifyFast2SMS_Login() {
         if(!fullName || !email || !mobile || !username || !password) {
             return alert("Kripya saari details bharein!");
         }
-
 
         const formData = new FormData();
         formData.append('fullName', fullName);
@@ -195,7 +186,7 @@ async function verifyFast2SMS_Login() {
 
         try {
             btn.disabled = true;
-            btn.innerText = "Registering & Uploading...";
+            btn.innerText = "Registering...";
             
             const response = await fetch(`${API_BASE}/register`, {
                 method: 'POST',
@@ -204,14 +195,13 @@ async function verifyFast2SMS_Login() {
             
             const result = await response.json();
             if (result.success) {
-                alert("Registration successful! Documents safely uploaded. Admin approval ka wait karein.");
+                alert("Registration successful! Admin approval ka wait karein.");
                 toggleModal('regModal', false);
-                // Form reset logic
             } else { 
                 alert("Error: " + result.error); 
             }
         } catch (error) { 
-            alert("Server connection failed during dynamic upload."); 
+            alert("Server connection failed during registration."); 
         } finally { 
             btn.disabled = false; 
             btn.innerText = "Save & Register"; 
