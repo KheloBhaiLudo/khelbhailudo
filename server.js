@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
+const uploadNone = multer();
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
