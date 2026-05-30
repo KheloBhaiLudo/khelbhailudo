@@ -76,64 +76,77 @@ const otpStore = {};
 
 
 // ========================================================
-// 💳 CASHFREE PRODUCTION ORDER CREATION ROUTE (FIXED)
+// ⚡ 100% PRODUCTION-READY CASHFREE CREATE ORDER ROUTE
 // ========================================================
 app.post('/api/payment/create-order', async (req, res) => {
     try {
         const { amount, userId, username, mobileNo } = req.body;
 
         if (!amount || !userId) {
-            return res.status(400).json({ success: false, message: "Amount and User ID are required" });
+            return res.status(400).json({ success: false, message: "Amount or User ID missing" });
         }
 
-const cashfreeUrl = "https://sandbox.cashfree.com/pg/orders";
+        // Generate unique dynamic client reference ID
+        const uniqueOrderId = `ORD_${Date.now()}_${userId}`;
 
-        // 🔥 AAPKA ASLI RENDER BACKEND URL (Dynamic Webhook Mapping Ke Liye)
-        const ASLI_RENDER_URL = "https://khelbhailudo.onrender.com";
+        // 🔥 PRODUCTION BASE URL CHECK: Cashfree Production Live API Endpoint
+        const cashfreeProductionUrl = "https://api.cashfree.com/pg/orders";
 
-        const orderData = {
-            order_amount: parseFloat(amount).toFixed(2),
+        // Structured JSON payload according to Cashfree V3 Production Standard
+        const orderPayload = {
+            order_amount: parseFloat(amount),
             order_currency: "INR",
-            order_id: `ORD_${Date.now()}_${userId}`,
+            order_id: uniqueOrderId,
             customer_details: {
                 customer_id: String(userId),
-                customer_phone: String(mobileNo || "0000000000"),
-                customer_name: username || "Ludo Player"
+                customer_name: username || "Ludo Player",
+                customer_phone: mobileNo && mobileNo.length === 10 ? mobileNo : "9999999999", // Valid phone bypass fallback
+                customer_email: `${userId}@khelbhailudo.com` // Dynamic fake backup email structure
             },
             order_meta: {
-                // 1. User payment ke baad is page par redirect hoga
-                return_url: "https://khelbhailudo.com/dashboard.html?order_id={order_id}",
-                
-                // 2. 🔥 DYNAMIC NOTIFY URL (Dashboard default webhook override)
-                notify_url: `${ASLI_RENDER_URL}/api/payment/webhook`
+                // Tumhara dynamic live webhook return map route
+                return_url: "https://khelbhailudo.onrender.com/dashboard.html",
+                notify_url: "https://khelbhailudo.onrender.com/api/payment/webhook"
             }
         };
 
-        const response = await axios.post(cashfreeUrl, orderData, {
+        console.log(`[Production Gateway Initiation]: Requesting order ${uniqueOrderId} for ₹${amount}`);
+
+        // Live AXIOS call token authentication layer
+        const gatewayResponse = await axios.post(cashfreeProductionUrl, orderPayload, {
             headers: {
-                'x-client-id': process.env.CASHFREE_APP_ID,       
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY, 
+                'x-client-id': process.env.CASHFREE_APP_ID, // Ensure Render Env holds Production APP ID
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY, // Ensure Render Env holds Production Secret Key
                 'x-api-version': '2023-08-01',
                 'Content-Type': 'application/json'
             }
         });
 
-        res.json({ 
-            success: true, 
-            payment_session_id: response.data.payment_session_id, 
-            order_id: response.data.order_id 
-        });
+        // Agar Cashfree session successfully allocate kar deta hai
+        if (gatewayResponse.data && gatewayResponse.data.payment_session_id) {
+            return res.json({
+                success: true,
+                payment_session_id: gatewayResponse.data.payment_session_id,
+                order_id: uniqueOrderId
+            });
+        } else {
+            console.error("Cashfree Empty Payload Allocation Error:", gatewayResponse.data);
+            return res.status(500).json({ success: false, message: "Gateway empty payload tracking error" });
+        }
 
     } catch (error) {
-        console.error("Cashfree Integration Critical Error:", error.response ? error.response.data : error.message);
-        res.status(500).json({ 
-            success: false, 
-            message: "Gateway setup sequence failure response", 
-            error: error.response ? error.response.data : error.message 
-        });
+        // Log the exact error coming from Cashfree production engine to trace wrong keys
+        if (error.response) {
+            console.error("🔥 Cashfree API Rejection Logs:", JSON.stringify(error.response.data));
+            return res.status(500).json({ 
+                success: false, 
+                message: `Gateway Setup Error: ${error.response.data.message || 'Authentication Failed'}` 
+            });
+        }
+        console.error("Critical Internal Server Error:", error.message);
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
-
 
 
 // ========================================================
