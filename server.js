@@ -136,7 +136,7 @@ const cashfreeUrl = "https://sandbox.cashfree.com/pg/orders";
 
 
 // ========================================================
-// 1. ⚡ CASHFREE WEBHOOK ROUTE (100% FULL-PROOF GAURANTEE)
+// 1. ⚡ CASHFREE WEBHOOK ROUTE (TRANSACTIONS HISTORY SYNC)
 // ========================================================
 app.post('/api/payment/webhook', async (req, res) => {
     try {
@@ -157,43 +157,42 @@ app.post('/api/payment/webhook', async (req, res) => {
             const amount = parseFloat(orderInfo.order_amount || orderInfo.orderAmount);
             const orderId = String(orderInfo.order_id || orderInfo.orderId).trim();
 
-            if (!orderId) {
-                return res.status(400).send("Required Order ID missing");
-            }
-
+            if (!orderId) return res.status(400).send("Required Order ID missing");
             const userId = orderId.split('_')[2];
 
-            // 🚫 ROW EXPONENTIAL DATABASE TRANSACTION LOCKING
+            // PostgreSQL Sequential Atomic Transaction
             await pool.query('BEGIN');
 
-            // 1. User ki row ko lock karte hain execution sync ke liye
-            const userLockQuery = await pool.query('SELECT wallet_balance, last_processed_order FROM users WHERE id = $1 FOR UPDATE', [userId]);
-            
+            // 🚫 LAYER 1: transactions table mein check karo kya ye order_id (utr_no) pehle se exist karta hai?
+            const txCheck = await pool.query('SELECT id FROM transactions WHERE utr_no = $1', [orderId]);
+            if (txCheck.rows.length > 0) {
+                await pool.query('ROLLBACK');
+                console.log(`[STRICT BLOCKED - WEBHOOK]: Transaction history for order ${orderId} already exists!`);
+                return res.status(200).send("OK"); // Respond OK to stop Cashfree retry loop
+            }
+
+            // 1. User ka profile balance lock karo for update
+            const userLockQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
             if (userLockQuery.rows.length === 0) {
                 await pool.query('ROLLBACK');
                 return res.status(404).send("User not found");
             }
 
-            // 2. 🔥 JAD SE KHATAM LAYER: Kya ye Order ID pehle hi is user par credit ho chuki hai?
-            const lastProcessedOrder = userLockQuery.rows[0].last_processed_order;
-            if (lastProcessedOrder === orderId) {
-                await pool.query('ROLLBACK');
-                console.log(`[STRICT BLOCKED - WEBHOOK]: Order ${orderId} already processed for user ${userId}. Skipping duplicate execution.`);
-                return res.status(200).send("OK");
-            }
-
-            // 3. Balance add karo aur users table mein hi current order_id ko freeze kar do
             const currentBalance = parseFloat(userLockQuery.rows[0].wallet_balance || 0);
             const newBalance = currentBalance + amount;
 
-            // [⚠️ SECURITY UPGRADE]: Balance badhane ke sath order_id ko permanent seal kar diya
+            // 2. Users table mein wallet balance update karo
+            await pool.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
+
+            // 3. 🔥 TUMHARI TRANSACTIONS TABLE MEIN ENTRY INSERT KARO
             await pool.query(
-                'UPDATE users SET wallet_balance = $1, last_processed_order = $2 WHERE id = $3', 
-                [newBalance, orderId, userId]
+                `INSERT INTO transactions (user_id, amount, type, status, utr_no) 
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [userId, amount, 'deposit', 'SUCCESS', orderId]
             );
             
             await pool.query('COMMIT');
-            console.log(`[Success Webhook]: ₹${amount} added safely. New Balance: ₹${newBalance}`);
+            console.log(`[Success Webhook]: ₹${amount} added & history saved for User ${userId}.`);
             return res.status(200).send("OK");
         }
         res.status(200).send("Not paid status");
@@ -205,7 +204,7 @@ app.post('/api/payment/webhook', async (req, res) => {
 });
 
 // ========================================================
-// 2. 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE (TRIPLE SECURED)
+// 2. 🔍 MANUAL FRONTEND SYNC FALLBACK ROUTE (TRANSACTIONS SYNC)
 // ========================================================
 app.post('/api/payment/verify-status', async (req, res) => {
     try {
@@ -230,29 +229,32 @@ app.post('/api/payment/verify-status', async (req, res) => {
 
             await pool.query('BEGIN');
             
-            // User query sync with exclusive lock
-            const userQuery = await pool.query('SELECT wallet_balance, last_processed_order FROM users WHERE id = $1 FOR UPDATE', [userId]);
+            // 🚫 LAYER 2: Frontend sync par bhi verification check mapping
+            const txCheck = await pool.query('SELECT id FROM transactions WHERE utr_no = $1', [orderIdClean]);
+            if (txCheck.rows.length > 0) {
+                await pool.query('ROLLBACK');
+                console.log(`[STRICT BLOCKED - FRONTEND]: Order ${orderIdClean} already applied in transaction history.`);
+                return res.json({ success: true, amount, message: "Balance already updated" });
+            }
+
+            const userQuery = await pool.query('SELECT wallet_balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
             
             if (userQuery.rows.length > 0) {
-                // 🔥 JAD SE KHATAM LAYER: Frontend sync par bhi same structure validation check
-                const lastProcessedOrder = userQuery.rows[0].last_processed_order;
-                if (lastProcessedOrder === orderIdClean) {
-                    await pool.query('ROLLBACK');
-                    console.log(`[STRICT BLOCKED - FRONTEND]: Order ${orderIdClean} already applied by Webhook. Rejecting duplicate credit.`);
-                    return res.json({ success: true, amount, message: "Balance already updated" });
-                }
-
                 const currentBalance = parseFloat(userQuery.rows[0].wallet_balance || 0);
                 const newBalance = currentBalance + amount;
                 
-                // Balance increase sequence and lock order token identifier
-                await pool.query(
-                    'UPDATE users SET wallet_balance = $1, last_processed_order = $2 WHERE id = $3', 
-                    [newBalance, orderIdClean, userId]
-                );
-                await pool.query('COMMIT');
+                // Users table main status update execution
+                await pool.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
                 
-                console.log(`[Success Frontend Sync]: ₹${amount} added safely. New Balance: ₹${newBalance}`);
+                // 🔥 TUMHARI TRANSACTIONS TABLE MEIN ENTRY INSERT KARO
+                await pool.query(
+                    `INSERT INTO transactions (user_id, amount, type, status, utr_no) 
+                     VALUES ($1, $2, $3, $4, $5)`,
+                    [userId, amount, 'deposit', 'SUCCESS', orderIdClean]
+                );
+
+                await pool.query('COMMIT');
+                console.log(`[Success Frontend Sync]: ₹${amount} added safely & history saved.`);
                 return res.json({ success: true, amount });
             }
             await pool.query('ROLLBACK');
