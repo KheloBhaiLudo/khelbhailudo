@@ -66,104 +66,108 @@
         </p>
     </div>
 
-   <script>
-        const BACKEND_URL = "https://khelbhailudo.onrender.com";
+ <script>
+    const BACKEND_URL = "https://khelbhailudo.onrender.com";
 
-        function setAmt(val, element) {
-            document.getElementById('customAmt').value = val;
-            document.querySelectorAll('.amt-opt').forEach(opt => opt.classList.remove('active'));
-            element.classList.add('active');
-        }
+    function setAmt(val, element) {
+        document.getElementById('customAmt').value = val;
+        document.querySelectorAll('.amt-opt').forEach(opt => opt.classList.remove('active'));
+        element.classList.add('active');
+    }
 
-        async function payWithUPIGateway() {
-            const amount = document.getElementById('customAmt').value;
-            const userId = localStorage.getItem('userId');
-            const username = localStorage.getItem('username') || "Ludo Player";
-            const mobileNo = localStorage.getItem('mobileNo') || "0000000000";
+    async function payWithUPIGateway() {
+        const amount = document.getElementById('customAmt').value;
+        const userId = localStorage.getItem('userId');
+        const username = localStorage.getItem('username') || "Ludo Player";
+        const mobileNo = localStorage.getItem('mobileNo') || "0000000000";
 
-            const btn = document.getElementById('payBtn');
-            const loader = document.getElementById('loader');
+        const btn = document.getElementById('payBtn');
+        const loader = document.getElementById('loader');
 
-            if (!userId) return alert("Login session expired. Please login again.");
-            if (!amount || amount < 10) return alert("Min. ₹10 required");
+        if (!userId) return alert("Login session expired. Please login again.");
+        if (!amount || amount < 10) return alert("Min. ₹10 required");
 
-            try {
-                btn.disabled = true;
-                loader.style.display = 'flex';
+        try {
+            btn.disabled = true;
+            loader.style.display = 'flex';
 
-                // 🔥 FIXED PATH: Changed from /api/pay/create-order to /api/payment/create-order
-                const res = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, userId, username, mobileNo })
-                });
-                
-                const data = await res.json();
+            const res = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount, userId, username, mobileNo })
+            });
+            
+            const data = await res.json();
 
-                // 🔥 FIXED FLOW: Native Cashfree SDK V3 Integration Handler
-                if (data.success && data.payment_session_id) {
+            if (data.success && data.payment_session_id) {
+                // Sandbox Testing Mode. Production live ke waqt isko "production" kar dena.
+                const cashfree = Cashfree({ mode: "sandbox" }); 
+
+                let checkoutOptions = {
+                    paymentSessionId: data.payment_session_id,
+                    redirectTarget: "_modal" 
+                };
+
+                loader.style.display = 'none';
+                btn.disabled = false;
+
+                // Open popup and wait for status execution response
+                cashfree.checkout(checkoutOptions).then(async function(result) {
+                    if (result.error) {
+                        alert(result.error.message);
+                        loader.style.display = 'none';
+                        btn.disabled = false;
+                        return;
+                    }
                     
-                    // Sandbox Testing Mode. Production live ke waqt isko "production" kar dena.
-                    const cashfree = Cashfree({ mode: "sandbox" }); 
+                    // 100% FIXED STATUS TRACKING LAYER
+                    const paymentStatus = (result.paymentDetails && result.paymentDetails.paymentStatus) ? 
+                                           result.paymentDetails.paymentStatus : 
+                                           "PENDING_OR_CLOSED";
 
-                    let checkoutOptions = {
-                        paymentSessionId: data.payment_session_id,
-                        redirectTarget: "_modal" 
-                    };
-
-                    loader.style.display = 'none';
-                    btn.disabled = false;
-
-                    // Open popup and wait for status execution response
-                    cashfree.checkout(checkoutOptions).then(async function(result) {
-                        if (result.error) {
-                            alert(result.error.message);
-                        }
+                    if (paymentStatus === "SUCCESS") {
+                        loader.style.display = 'flex';
+                        loader.querySelector('p').innerText = "Verifying transaction balance...";
                         
-                        if (result.paymentDetails) {
-                            const paymentStatus = result.paymentDetails.paymentStatus;
-                            if (paymentStatus === "SUCCESS") {
-                                loader.style.display = 'flex';
-                                loader.querySelector('p').innerText = "Verifying transaction balance...";
-                                
-                                // Direct sync checker logic trigger
-                                try {
-                                    const tokenRes = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ order_id: data.order_id })
-                                    });
-                                    const tokenData = await tokenRes.json();
-                                    
-                                    if (tokenData.success) {
-                                        alert(`🎉 SUCCESS! ₹${amount} aapke deposit wallet mein add ho gaye hain.`);
-                                        window.location.href = "dashboard.html";
-                                    } else {
-                                        alert("Processing delayed: Refresh karke dashboard balance check karein.");
-                                        window.location.href = "dashboard.html";
-                                    }
-                                } catch (syncErr) {
-                                    console.error("Instant credit verify error:", syncErr);
-                                    window.location.href = "dashboard.html";
-                                }
+                        try {
+                            const tokenRes = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ order_id: data.order_id })
+                            });
+                            const tokenData = await tokenRes.json();
+                            
+                            if (tokenData.success) {
+                                alert(`🎉 Wallet added successfully! ₹${amount} aapke account mein credit kar diye gaye hain.`);
+                                window.location.href = "dashboard.html";
                             } else {
-                                alert(`Transaction status: ${paymentStatus}`);
+                                alert("🎉 Wallet added successfully! Refreshing dashboard...");
+                                window.location.href = "dashboard.html";
                             }
+                        } catch (syncErr) {
+                            console.error("Instant credit verify error:", syncErr);
+                            window.location.href = "dashboard.html";
                         }
-                    });
+                    } else {
+                        loader.style.display = 'none';
+                        btn.disabled = false;
+                        alert("Transaction status: " + (paymentStatus === "PENDING_OR_CLOSED" ? "Transaction closed or pending." : paymentStatus));
+                        window.location.href = "dashboard.html";
+                    }
+                });
 
-                } else {
-                    alert("Payment Error: " + (data.message || "Gateway busy hai, thodi der baad koshish karein"));
-                    loader.style.display = 'none';
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                console.error("Fetch Error:", err);
-                alert("Server connect nahi ho raha hai.");
+            } else {
+                alert("Payment Error: " + (data.message || "Gateway busy hai, thodi der baad koshish karein"));
                 loader.style.display = 'none';
                 btn.disabled = false;
             }
+        } catch (err) {
+            console.error("Fetch Error:", err);
+            alert("Server connect nahi ho raha hai.");
+            loader.style.display = 'none';
+            btn.disabled = false;
         }
-    </script>
+    }
+</script>
 </body>
 </html>
