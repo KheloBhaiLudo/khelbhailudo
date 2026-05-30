@@ -308,66 +308,32 @@ const upload = multer({
 // --- ROUTES ---
 
 // 1. User Registration (Strict Cloud Stream Flow - Target mapping optimized)
-app.post('/api/register', upload.fields([{name:'aadharFront'}, {name:'aadharBack'}]), async (req, res) => {
+app.post('/api/register', async (req, res) => {
     try {
-        console.log("--- Supabase Storage Input Processing Layer ---");
+        console.log("--- Processing Fast Registration Layer (No Documents Mode) ---");
+        
+        // Data ab direct req.body se parse hoga bina file buffer dependency ke
         const { fullName, email, mobile, username, password, referred_by } = req.body;
         
-        if (!req.files || !req.files['aadharFront'] || !req.files['aadharBack']) {
+        // Basic required inputs validation check
+        if (!fullName || !email || !mobile || !username || !password) {
             return res.status(400).json({ 
                 success: false, 
-                error: "Frontend Upload Error: Aadhaar Card images server tak nahi pahunchi." 
+                error: "Validation Error: Saari details bharna anivarya hai!" 
             });
         }
 
-        const frontFile = req.files['aadharFront'][0];
-        const backFile = req.files['aadharBack'][0];
-
-        const frontOriginalName = frontFile.filename || frontFile.originalname || `front_${Date.now()}`;
-        const backOriginalName = backFile.filename || backFile.originalname || `back_${Date.now()}`;
-
-        const timestamp = Date.now();
-        const frontName = `${timestamp}_front_${frontOriginalName.replace(/\s+/g, '_')}`;
-        const backName = `${timestamp}_back_${backOriginalName.replace(/\s+/g, '_')}`;
-
-        let frontBuffer = frontFile.buffer;
-        let backBuffer = backFile.buffer;
-
-        // Use core runtime fallback if client object is globally declared or isolated inside pool
-        const targetStorageClient = typeof supabase !== 'undefined' ? supabase : supabaseClientInstance;
-
-        if(!targetStorageClient || !targetStorageClient.storage) {
-            throw new Error("Supabase client module initialization failed internally or hidden inside db.js layer.");
-        }
-
-        // Upload Front Document
-        const { data: frontUpload, error: frontErr } = await targetStorageClient.storage
-            .from('aadhar')
-            .upload(frontName, frontBuffer, { contentType: frontFile.mimetype || 'image/jpeg', upsert: true });
-
-        if (frontErr) throw new Error("Supabase Front Bucket Rejection: " + frontErr.message);
-
-        // Upload Back Document
-        const { data: backUpload, error: backErr } = await targetStorageClient.storage
-            .from('aadhar')
-            .upload(backName, backBuffer, { contentType: backFile.mimetype || 'image/jpeg', upsert: true });
-
-        if (backErr) throw new Error("Supabase Back Bucket Rejection: " + backErr.message);
-
-        const { data: frontUrlData } = targetStorageClient.storage.from('aadhar').getPublicUrl(frontName);
-        const { data: backUrlData } = targetStorageClient.storage.from('aadhar').getPublicUrl(backName);
-
-        const aadharFrontUrl = frontUrlData ? frontUrlData.publicUrl : null;
-        const aadharBackUrl = backUrlData ? backUrlData.publicUrl : null;
-
         const parsedReferBy = referred_by && !isNaN(referred_by) ? parseInt(referred_by) : null;
 
+        // 🔥 FIXED: Database insertion execute bina kisi file url buffers ke
+        // Columns 'aadhar_front_url' aur 'aadhar_back_url' ko hum null pass kar rahe hain
+        // Aur naye account ko automatic live track logic ke mutabik standard format de rahe hain
         await pool.query(
             `INSERT INTO users (
                 full_name, email, mobile_no, username, password, 
                 aadhar_front_url, aadhar_back_url, is_verified, kyc_status, referred_by
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, false, 'pending_login', $8)`,
-            [fullName, email, mobile, username, password, aadharFrontUrl, aadharBackUrl, parsedReferBy]
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, 'verified', $8)`,
+            [fullName, email, mobile, username, password, null, null, parsedReferBy]
         );
         
         return res.status(200).json({ success: true, message: "Cloud registration successful!" });
@@ -377,7 +343,6 @@ app.post('/api/register', upload.fields([{name:'aadharFront'}, {name:'aadharBack
         return res.status(500).json({ success: false, error: err.message });
     }
 });
-
 
 
 // 2. ENDPOINT: SEND OTP VIA SECURE TEST BYPASS (100% FIXED & STABLE)
