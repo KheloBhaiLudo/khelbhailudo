@@ -111,8 +111,9 @@
                 loader.style.display = 'none';
                 btn.disabled = false;
 
-                // Open popup and wait for status execution response
+// Open popup and wait for status execution response
                 cashfree.checkout(checkoutOptions).then(async function(result) {
+                    // Condition A: Agar SDK initialize hone mein ya open hote hi error aaye
                     if (result.error) {
                         alert(result.error.message);
                         loader.style.display = 'none';
@@ -120,39 +121,37 @@
                         return;
                     }
                     
-                    // 100% FIXED STATUS TRACKING LAYER
-                    const paymentStatus = (result.paymentDetails && result.paymentDetails.paymentStatus) ? 
-                                           result.paymentDetails.paymentStatus : 
-                                           "PENDING_OR_CLOSED";
-
-                    if (paymentStatus === "SUCCESS") {
-                        loader.style.display = 'flex';
-                        loader.querySelector('p').innerText = "Verifying transaction balance...";
+                    // 🔥 100% FIX: No Dependency on result.paymentDetails status
+                    // Popup close hote hi hum direct loader chalayenge aur backend se sacchi baat poochenge
+                    loader.style.display = 'flex';
+                    loader.querySelector('p').innerText = "Verifying transaction balance with Cashfree...";
+                    
+                    try {
+                        // Direct server-to-server validation sync route trigger
+                        const tokenRes = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ order_id: data.order_id })
+                        });
+                        const tokenData = await tokenRes.json();
                         
-                        try {
-                            const tokenRes = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ order_id: data.order_id })
-                            });
-                            const tokenData = await tokenRes.json();
-                            
-                            if (tokenData.success) {
-                                alert(`🎉 Wallet added successfully! ₹${amount} aapke account mein credit kar diye gaye hain.`);
-                                window.location.href = "dashboard.html";
-                            } else {
-                                alert("🎉 Wallet added successfully! Refreshing dashboard...");
-                                window.location.href = "dashboard.html";
-                            }
-                        } catch (syncErr) {
-                            console.error("Instant credit verify error:", syncErr);
+                        if (tokenData.success) {
+                            // Perfect dynamic status response prompt
+                            alert(`🎉 Wallet added successfully! ₹${amount} aapke account mein credit kar diye gaye hain.`);
+                            window.location.href = "dashboard.html";
+                        } else {
+                            // Agar backend pending bole toh direct simple message bina 'undefined' string ke
+                            alert("Transaction Processing: Kripya dashboard refresh karke balance check karein.");
                             window.location.href = "dashboard.html";
                         }
-                    } else {
+                    } catch (syncErr) {
+                        console.error("Instant credit verify error:", syncErr);
+                        // Network connectivity fail hone par safe fallback redirect
+                        alert("Sync delay: Balance status dashboard par load ho raha hai.");
+                        window.location.href = "dashboard.html";
+                    } finally {
                         loader.style.display = 'none';
                         btn.disabled = false;
-                        alert("Transaction status: " + (paymentStatus === "PENDING_OR_CLOSED" ? "Transaction closed or pending." : paymentStatus));
-                        window.location.href = "dashboard.html";
                     }
                 });
 
