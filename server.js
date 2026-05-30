@@ -310,12 +310,11 @@ const upload = multer({
 // 1. User Registration (Strict Cloud Stream Flow - Target mapping optimized)
 app.post('/api/register', async (req, res) => {
     try {
-        console.log("--- Processing Fast Registration Layer (No Documents Mode) ---");
+        console.log("--- Processing Fast Registration Layer (JSON Mode) ---");
         
-        // Data ab direct req.body se parse hoga bina file buffer dependency ke
+        // Ab req.body ekdum perfectly parse hoga
         const { fullName, email, mobile, username, password, referred_by } = req.body;
         
-        // Basic required inputs validation check
         if (!fullName || !email || !mobile || !username || !password) {
             return res.status(400).json({ 
                 success: false, 
@@ -325,15 +324,12 @@ app.post('/api/register', async (req, res) => {
 
         const parsedReferBy = referred_by && !isNaN(referred_by) ? parseInt(referred_by) : null;
 
-        // 🔥 FIXED: Database insertion execute bina kisi file url buffers ke
-        // Columns 'aadhar_front_url' aur 'aadhar_back_url' ko hum null pass kar rahe hain
-        // Aur naye account ko automatic live track logic ke mutabik standard format de rahe hain
         await pool.query(
             `INSERT INTO users (
                 full_name, email, mobile_no, username, password, 
                 aadhar_front_url, aadhar_back_url, is_verified, kyc_status, referred_by
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, 'verified', $8)`,
-            [fullName, email, mobile, username, password, null, null, parsedReferBy]
+             ) VALUES ($1, $2, $3, $4, $5, null, null, true, 'verified', $6)`,
+            [fullName, email, mobile, username, password, parsedReferBy]
         );
         
         return res.status(200).json({ success: true, message: "Cloud registration successful!" });
