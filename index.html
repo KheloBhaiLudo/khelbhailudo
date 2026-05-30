@@ -184,18 +184,29 @@ async function verifyFast2SMS_Login() {
             formData.append('referred_by', globalReferBy);
         }
 
-        try {
+try {
             btn.disabled = true;
             btn.innerText = "Registering...";
-            
+
+            // 🔥 FIXED FLOW: Sending pure JSON structure to match backend parser
             const response = await fetch(`${API_BASE}/register`, {
                 method: 'POST',
-                body: formData // Content-Type header mat lagana, browser automatic boundary set karega
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ 
+                    fullName: fullName, 
+                    email: email, 
+                    mobile: mobile, 
+                    username: username, 
+                    password: password, 
+                    referred_by: globalReferBy 
+                })
             });
             
             const result = await response.json();
             if (result.success) {
-                alert("Registration successful! Admin approval ka wait karein.");
+                alert("Registration successful! Khelna shuru karein.");
                 toggleModal('regModal', false);
             } else { 
                 alert("Error: " + result.error); 
