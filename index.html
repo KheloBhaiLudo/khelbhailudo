@@ -180,9 +180,7 @@ async function verifyFast2SMS_Login() {
         if(!fullName || !email || !mobile || !username || !password) {
             return alert("Kripya saari details bharein!");
         }
-        if(!frontFile || !backFile) {
-            return alert("Aadhaar card ke dono sides upload karna anivarya hai!");
-        }
+
 
         const formData = new FormData();
         formData.append('fullName', fullName);
@@ -190,8 +188,6 @@ async function verifyFast2SMS_Login() {
         formData.append('mobile', mobile);
         formData.append('username', username);
         formData.append('password', password);
-        formData.append('aadharFront', frontFile);
-        formData.append('aadharBack', backFile);
         
         if(globalReferBy) {
             formData.append('referred_by', globalReferBy);
@@ -211,8 +207,6 @@ async function verifyFast2SMS_Login() {
                 alert("Registration successful! Documents safely uploaded. Admin approval ka wait karein.");
                 toggleModal('regModal', false);
                 // Form reset logic
-                if(frontInput) frontInput.value = '';
-                if(backInput) backInput.value = '';
             } else { 
                 alert("Error: " + result.error); 
             }
