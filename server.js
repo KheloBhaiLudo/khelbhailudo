@@ -402,9 +402,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
 
 
-// ==========================================
-// 🔥 100% FIXED: COMBINED OTP VERIFY & LOGIN ROUTE
-// ==========================================
+// ==========================================================
+// 🔥 100% FIXED: COMBINED OTP VERIFY & LOGIN ROUTE ( airtight )
+// ==========================================================
 app.post('/api/auth/verify-otp', async (req, res) => {
     const { mobile, otp } = req.body;
 
@@ -412,9 +412,12 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         return res.status(400).json({ success: false, error: "Mobile number aur OTP dono zaroori hain!" });
     }
 
-    console.log(`[Verification Stream] Verifying OTP for Mobile: ${mobile}, Entered OTP: ${otp}`);
+    const cleanMobile = String(mobile).trim();
+    const cleanOtp = String(otp).trim();
 
-    const record = otpStore[mobile];
+    console.log(`[Verification Stream] Verifying OTP for Mobile: ${cleanMobile}, Entered OTP: ${cleanOtp}`);
+
+    const record = otpStore[cleanMobile];
 
     // 1. Check agar memory cache mein code exist karta hai
     if (!record) {
@@ -423,19 +426,20 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
     // 2. Check agar OTP expire ho chuka hai
     if (Date.now() > record.expiresAt) {
-        delete otpStore[mobile];
+        delete otpStore[cleanMobile];
         return res.status(400).json({ success: false, error: "OTP expire ho gaya hai! Dubara bhein." });
     }
 
-    // 3. Match the secure bypass token or normal generated OTP
-    if (record.otp === otp.trim()) {
-        // OTP verified! Token clear karein
-        delete otpStore[mobile];
+    // 3. 🔥 MATCH FIX: Convert both values to String to prevent type-mismatch bugs (Number vs String)
+    if (String(record.otp).trim() === cleanOtp) {
+        
+        // OTP verified! Token clear karein instantly
+        delete otpStore[cleanMobile];
         
         try {
             // 4. Verification successful hote hi direct database se user ko log-in karwao
-            console.log(`[Login Process] Fetching database profiles for: ${mobile}`);
-            const userCheck = await pool.query("SELECT id, is_verified FROM users WHERE mobile_no = $1", [mobile.trim()]);
+            console.log(`[Login Process] Fetching database profiles for: ${cleanMobile}`);
+            const userCheck = await pool.query("SELECT id, is_verified FROM users WHERE mobile_no = $1", [cleanMobile]);
 
             if (userCheck.rows.length === 0) {
                 return res.status(400).json({ 
