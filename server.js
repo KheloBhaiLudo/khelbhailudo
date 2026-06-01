@@ -356,7 +356,7 @@ app.post('/api/register', async (req, res) => {
 
 
 // ========================================================
-// ⚡ 100% FINAL BULLETPROOF FAST2SMS DISPATCH CONTROLLER
+// ⚡ 100% OFFICIAL FAST2SMS SMART OTP API INTEGRATION
 // ========================================================
 app.post('/api/auth/send-otp', async (req, res) => {
     try {
@@ -368,63 +368,65 @@ app.post('/api/auth/send-otp', async (req, res) => {
         const cleanMobile = String(mobile).trim();
         const otp = Math.floor(1000 + Math.random() * 9000);
 
-        // Standard memory allocation sequence
+        // Session memory backup mapping
         otpStore[cleanMobile] = {
             otp: String(otp),
             expiresAt: Date.now() + 5 * 60 * 1000 // 5 Minutes
         };
 
-        console.log(`[SMS Gateway Initiation]: Active processing OTP ${otp} for ${cleanMobile}`);
+        console.log(`[Official OTP Route Initiated]: Generating OTP ${otp} for ${cleanMobile}`);
 
-        // Get and clean the API key securely
         const rawApiKey = process.env.FAST2SMS_API_KEY || "";
         const cleanApiKey = rawApiKey.replace(/\s+/g, ''); 
 
-        const fast2smsUrl = "https://www.fast2sms.com/dev/bulkV2";
+        // 🔥 OFFICIAL DOCUMENTATION SYNC (image_f23be3.png)
+        // URL: POST https://www.fast2sms.com/dev/otp/send
+        const fast2smsOtpUrl = "https://www.fast2sms.com/dev/otp/send";
         
-        // 🔥 DOUBLE-LOCK SECURITY SYNC: Headers aur Params dono mein key bhej rahe hain
-        // Isse invalid authentication ka error 100% bypass ho jayega
-        const smsResponse = await axios.get(fast2smsUrl, {
+        // Structured Body Payload format matching your documentation interface
+        const basePayload = {
+            "mobile": cleanMobile,
+            "otp_id": "your_otp_id_here", // ⚠️ Check Step 2 Below
+            "otp_expiry": 5,              // Set dynamic validation window to 5 minutes
+            "otp": String(otp)            // Sending our locally validated random number string
+        };
+
+        const smsResponse = await axios.post(fast2smsOtpUrl, basePayload, {
             headers: {
-                "authorization": cleanApiKey,
-                "cache-control": "no-cache",
-                "accept": "*/*"
-            },
-            params: {
-                "authorization": cleanApiKey, // Fast2SMS alternative query mapping fallback
-                "variables_values": String(otp),
-                "route": "otp",
-                "numbers": cleanMobile
+                'authorization': cleanApiKey,
+                'accept': 'application/json',
+                'content-type': 'application/json'
             }
         });
 
-        // Handle structural success criteria flags
         if (smsResponse.data && (smsResponse.data.return === true || smsResponse.data.status_code === 200)) {
-            console.log(`[Gateway Success]: Real SMS safely dispatched to ${cleanMobile}`);
+            console.log(`[Official Gateway Success]: Secured smart OTP dispatched to ${cleanMobile}`);
             return res.status(200).json({ 
                 success: true, 
-                message: "OTP successfully sent." 
+                message: "OTP successfully sent to your device." 
             });
         } else {
-            console.error("Fast2SMS Core Rejection Output:", smsResponse.data);
+            console.error("Fast2SMS API Refusal Payload:", smsResponse.data);
             return res.status(500).json({ 
                 success: false, 
-                error: smsResponse.data.message || "Gateway signature refusal error." 
+                error: smsResponse.data.message || "Gateway configuration mismatch error." 
             });
         }
 
     } catch (error) {
         if (error.response) {
-            console.error("🔥 Fast2SMS Gateway Fatal Rejection Logs:", JSON.stringify(error.response.data));
+            console.error("🔥 Fast2SMS Official API Error Logs:", JSON.stringify(error.response.data));
             return res.status(500).json({ 
                 success: false, 
-                error: `SMS Gateway Error: ${error.response.data.message || 'Authentication Layer Rejected Request'}` 
+                error: `SMS Gateway Error: ${error.response.data.message || 'Smart OTP Configuration Failed'}` 
             });
         }
-        console.error("Critical Internal Server Error in SMS Router:", error.message);
+        console.error("Critical Server Failure in Official SMS Router:", error.message);
         return res.status(500).json({ success: false, error: "Internal Server Network Timeout." });
     }
 });
+
+
 
 // ==========================================================
 // 🔥 100% FIXED: COMBINED OTP VERIFY & LOGIN ROUTE ( airtight )
