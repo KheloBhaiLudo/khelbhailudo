@@ -356,7 +356,7 @@ app.post('/api/register', async (req, res) => {
 
 
 // ========================================================
-// ⚡ 100% FIXED: FAST2SMS LIVE OTP ROUTE WITH ERROR TRACING
+// ⚡ FAST2SMS REAL Dispatched ROUTE WITH STRICT AUTH STRIP
 // ========================================================
 app.post('/api/auth/send-otp', async (req, res) => {
     try {
@@ -366,50 +366,41 @@ app.post('/api/auth/send-otp', async (req, res) => {
         }
 
         const cleanMobile = String(mobile).trim();
-
-        // 4-Digit secure random OTP generation
         const otp = Math.floor(1000 + Math.random() * 9000);
 
-        // Save to your existing memory store for cross-verification setup
-        // Ensure global.otpStore or local otpStore object is declared above
         otpStore[cleanMobile] = {
             otp: String(otp),
-            expiresAt: Date.now() + 5 * 60 * 1000 // 5 Minutes Expiry
+            expiresAt: Date.now() + 5 * 60 * 1000
         };
 
         console.log(`[SMS Gateway Initiation]: Preparing OTP ${otp} for ${cleanMobile}`);
 
-        // 🔥 CRITICAL FIX: Fast2SMS GET request with proper authorization header placement
+        // 🔥 EXTRA PROTECTION: Remove all hidden whitespaces, newlines or carriage returns from the Key
+        const rawApiKey = process.env.FAST2SMS_API_KEY || "";
+        const cleanApiKey = rawApiKey.replace(/\s+/g, ''); 
+
         const fast2smsUrl = "https://www.fast2sms.com/dev/bulkV2";
         
         const smsResponse = await axios.get(fast2smsUrl, {
             headers: {
-                "authorization": process.env.FAST2SMS_API_KEY ? process.env.FAST2SMS_API_KEY.trim() : ""
+                "authorization": cleanApiKey // Pure clean authorization token string passed
             },
             params: {
                 "variables_values": String(otp),
-                "route": "otp", // Fast2SMS default OTP routing configuration
+                "route": "otp",
                 "numbers": cleanMobile
             }
         });
 
-        // Fast2SMS returns a response data structure containing 'return' as boolean
         if (smsResponse.data && smsResponse.data.return === true) {
             console.log(`[Gateway Success]: Real SMS dispatched to ${cleanMobile}`);
-            return res.status(200).json({ 
-                success: true, 
-                message: "OTP bhej diya gaya hai." 
-            });
+            return res.status(200).json({ success: true, message: "OTP bhej diya gaya hai." });
         } else {
             console.error("Fast2SMS Rejection Output:", smsResponse.data);
-            return res.status(500).json({ 
-                success: false, 
-                error: smsResponse.data.message || "Gateway configuration refusal error." 
-            });
+            return res.status(500).json({ success: false, error: smsResponse.data.message || "Gateway rejection error." });
         }
 
     } catch (error) {
-        // 🔥 ERROR DIAGNOSTIC LAYER: This will print the exact reason in your Render Logs!
         if (error.response) {
             console.error("🔥 Fast2SMS Gateway Server Rejection Logs:", JSON.stringify(error.response.data));
             return res.status(500).json({ 
