@@ -82,7 +82,7 @@
         }
     });
 
-// 1. FAST2SMS REQUEST OTP (Updated with Smart Notification Alerts)
+// 1. FAST2SMS REQUEST OTP (LIVE SMS MODE)
 async function requestFast2SMS_OTP() {
     const mobile = document.getElementById('loginMobile').value.trim();
     const btn = document.getElementById('otpReqBtn');
@@ -102,8 +102,8 @@ async function requestFast2SMS_OTP() {
         const data = await response.json();
 
         if (data.success) {
-            // 🔥 CHRISITAN NOTIFICATION POPUP: User ko screen par hi OTP dikh jayega!
-            alert(`🔒 Ludo OTP:\nAapka verification code hai: ${data.otp}`);
+            // 🔥 BYPASS ALERT REMOVED: Ab screen par koi OTP nahi dikhega, direct phone par SMS aayega
+            alert("📩 OTP aapke mobile number par safely bhej diya gaya hai. Kripya check karein.");
             
             // UI elements switch karein
             document.getElementById('mobileSection').style.display = 'none';
