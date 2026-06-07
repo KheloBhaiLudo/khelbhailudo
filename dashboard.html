@@ -161,170 +161,193 @@
     </div>
 
 
-    <!-- Wallet History Section -->
-<div id="walletHis" class="page-section">
-    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Wallet History</h3></div>
-    <div id="walletList"></div>
-</div>
+    <div id="walletHis" class="page-section">
+        <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Wallet History</h3></div>
+        <div id="walletList"></div>
+    </div>
 
-<!-- Refer History Section -->
-<div id="referHis" class="page-section">
-    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Refer History</h3></div>
-    <div id="referList"><p style="text-align:center; padding:20px;">Abhi tak koi referral nahi hai.</p></div>
-</div>
+    <div id="referHis" class="page-section">
+        <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()}"></i><h3>Refer History</h3></div>
+        <div id="referList"><p style="text-align:center; padding:20px;">Abhi tak koi referral nahi hai.</p></div>
+    </div>
 
-<!-- Refer & Earn Section -->
-<div id="referearn" class="page-section">
-    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Refer & Earn</h3></div>
-    <div class="history-card" style="text-align:center;">
-        <i class="fas fa-gift fa-3x" style="color:var(--accent); margin-bottom:15px;"></i>
-        <h4>Invite Friends & Earn</h4>
-        <p style="font-size:12px; color:#94a3b8;">Har referral par paayein ₹10 ka bonus!</p>
-        <div style="background:#0f172a; padding:15px; border-radius:10px; margin:15px 0; border:1px dashed var(--primary);">
-            <span style="font-size:10px; color:var(--primary);">YOUR REFER CODE</span><br>
-            <b id="myReferCode" style="font-size:20px; letter-spacing:2px;">LOADING...</b>
+    <div id="referearn" class="page-section">
+        <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Refer & Earn</h3></div>
+        <div class="history-card" style="text-align:center;">
+            <i class="fas fa-gift fa-3x" style="color:var(--accent); margin-bottom:15px;"></i>
+            <h4>Invite Friends & Earn</h4>
+            <p style="font-size:12px; color:#94a3b8;">Har referral par paayein ₹10 ka bonus!</p>
+            <div style="background:#0f172a; padding:15px; border-radius:10px; margin:15px 0; border:1px dashed var(--primary);">
+                <span style="font-size:10px; color:var(--primary);">YOUR REFER CODE</span><br>
+                <b id="myReferCode" style="font-size:20px; letter-spacing:2px;">LOADING...</b>
+            </div>
+            <button class="btn-proceed" onclick="shareReferral()">SHARE NOW</button>
         </div>
-        <button class="btn-proceed" onclick="shareReferral()">SHARE NOW</button>
-    </div>
-</div>
-
-<!-- Notifications Section -->
-<div id="notifications" class="page-section">
-    <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Notifications</h3></div>
-    <div id="notifList"><p style="text-align:center; padding:20px;">Koi nayi notification nahi hai.</p></div>
-</div>
-
-<!-- Policy Section -->
-<div id="policy" class="page-section">
-    <div class="section-header">
-        <i class="fas fa-arrow-left" onclick="closeSections()"></i>
-        <h3>Our Policies</h3>
-    </div>
-    
-    <div class="history-card" style="font-size:13px; line-height:1.6; margin-bottom: 15px;">
-        <h4 style="margin-top: 0; color: var(--primary); font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">1. General Game Rules</h4>
-        <p><b>• Fair Play:</b> Kisi bhi tarah ki cheating karne par account ban kar diya jayega.</p>
-        <p><b>• Withdrawals:</b> Minimum withdrawal ₹100 hai aur Admin fee 5% lagegi.</p>
-        <p><b>• Support:</b> 24/7 help ke liye WhatsApp use karein.</p>
     </div>
 
-    <div class="history-card" style="font-size:13px; line-height:1.6;">
-        <h4 style="margin-top: 0; color: var(--accent); font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">2. Cancellation & Refund Policy</h4>
-        <p>Thanks for being connected with <b>khelbhailudo</b>. If you are not entirely satisfied with your subscription, we are here to help.</p>
+    <div id="notifications" class="page-section">
+        <div class="section-header"><i class="fas fa-arrow-left" onclick="closeSections()"></i><h3>Notifications</h3></div>
+        <div id="notifList"><p style="text-align:center; padding:20px;">Koi nayi notification nahi hai.</p></div>
+    </div>
+
+    <div id="policy" class="page-section">
+        <div class="section-header">
+            <i class="fas fa-arrow-left" onclick="closeSections()"></i>
+            <h3>Our Policies</h3>
+        </div>
         
-        <p style="margin-top: 12px; font-weight: bold; color: var(--primary);">• Refunds Process:</p>
-        <p style="padding-left: 10px; margin-top: -5px; color: #cbd5e1;">Once we receive your Refund request, we will inspect it and notify you on the status of your refund.</p>
-        <p style="padding-left: 10px; color: #cbd5e1;">If your refund request is approved, we will initiate a refund to your credit card (or original method of payment) within <b>7 working days</b>. You will receive the credit within a certain amount of days, depending on your card issuer's policies.</p>
-        
-        <p style="margin-top: 12px; font-weight: bold; color: var(--primary);">• Technical Glitch Clause:</p>
-        <p style="padding-left: 10px; margin-top: -5px; color: #cbd5e1;">In case of unforeseen technical glitch, <b>khelbhailudo</b> would refund subscription upon reviewing the complaint. The final decision lies with the company.</p>
+        <div class="history-card" style="font-size:13px; line-height:1.6; margin-bottom: 15px;">
+            <h4 style="margin-top: 0; color: var(--primary); font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">1. General Game Rules</h4>
+            <p><b>• Fair Play:</b> Kisi bhi tarah ki cheating karne par account ban kar diya jayega.</p>
+            <p><b>• Withdrawals:</b> Minimum withdrawal ₹100 hai aur Admin fee 5% lagegi.</p>
+            <p><b>• Support:</b> 24/7 help ke liye WhatsApp use karein.</p>
+        </div>
+
+        <div class="history-card" style="font-size:13px; line-height:1.6;">
+            <h4 style="margin-top: 0; color: var(--accent); font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">2. Cancellation & Refund Policy</h4>
+            <p>Thanks for being connected with <b>khelbhailudo</b>. If you are not entirely satisfied with your subscription, we are here to help.</p>
+            
+            <p style="margin-top: 12px; font-weight: bold; color: var(--primary);">• Refunds Process:</p>
+            <p style="padding-left: 10px; margin-top: -5px; color: #cbd5e1;">Once we receive your Refund request, we will inspect it and notify you on the status of your refund.</p>
+            <p style="padding-left: 10px; color: #cbd5e1;">If your refund request is approved, we will initiate a refund to your credit card (or original method of payment) within <b>7 working days</b>. You will receive the credit within a certain amount of days, depending on your card issuer's policies.</p>
+            
+            <p style="margin-top: 12px; font-weight: bold; color: var(--primary);">• Technical Glitch Clause:</p>
+            <p style="padding-left: 10px; margin-top: -5px; color: #cbd5e1;">In case of unforeseen technical glitch, <b>khelbhailudo</b> would refund subscription upon reviewing the complaint. The final decision lies with the company.</p>
+        </div>
     </div>
-</div>
 
     <script>
-window.addEventListener('DOMContentLoaded', async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get('order_id');
-
-    if (orderId) {
-        console.log("Verifying transaction lifecycle for:", orderId);
-        
-        // URL clean karo taaki reload loop na bane
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        alert("Processing: Payment verify ho raha hai, kripya page ko close na karein...");
-
-        try {
-            // 🔥 APNA ASLI RE-ROUTE VERIFICATION CALL
-            const BACKEND_URL = "https://khelbhailudo.onrender.com"; 
-
-            // Hum 2 seconds wait karke direct server sync api bhejenge backup ke liye
-            const res = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: orderId })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                alert(`🎉 SATEEK FIXED! ₹${data.amount} aapke wallet mein add ho chuke hain.`);
-                if (typeof fetchUserData === 'function') await fetchUserData();
-                else window.location.reload();
-            } else {
-                // Agar sync API immediate data na de toh thoda hold karke load karo
-                alert("Processing delayed: Check kar rahe hain, refresh karke wallet dekhein.");
-                window.location.reload();
-            }
-        } catch (err) {
-            console.error("Verification error:", err);
-            // Dynamic refresh fallback
-            window.location.reload();
-        }
-    }
-});
-        
         const API_BASE = "https://khelbhailudo.onrender.com/api";
         const userId = localStorage.getItem('userId');
         let currentWinningBal = 0;
         let kycStatus = 'pending';
 
+        // --- 1. HANDLE PAYMENT URL VERIFICATION LIFE CYCLE ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('order_id');
+
+            if (orderId) {
+                console.log("Verifying transaction lifecycle for:", orderId);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert("Processing: Payment verify ho raha hai, kripya page ko close na karein...");
+
+                try {
+                    const BACKEND_URL = "https://khelbhailudo.onrender.com"; 
+                    const res = await fetch(`${BACKEND_URL}/api/payment/verify-status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ order_id: orderId })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(`🎉 SATEEK FIXED! ₹${data.amount} aapke wallet mein add ho chuke hain.`);
+                        await fetchProfile();
+                    } else {
+                        alert("Processing delayed: Check kar rahe hain, refresh karke wallet dekhein.");
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error("Verification error:", err);
+                    window.location.reload();
+                }
+            }
+        });
+
+        // --- 2. MENU TOGGLE SYSTEM ---
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('active');
             const overlay = document.getElementById('overlay');
             overlay.style.display = (overlay.style.display === 'block') ? 'none' : 'block';
         }
 
+        // --- 3. COMBINED CLEAN SECTION SWITCH CONTROLLER (FIXED DUPLICATE OVERRIDE) ---
         function openSection(id) {
             toggleMenu();
-            document.getElementById(id).style.display = 'block';
+            // Saare page sections ko chupayein
+            document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none');
+            
+            // Target specific section load trigger
+            const target = document.getElementById(id);
+            if(target) {
+                target.style.display = 'block';
+            } else {
+                alert("Ye section jald hi chalu hoga!");
+                return;
+            }
+
+            // Data loading segregation mapping
             if(id === 'gameHistorySection') fetchGameHistory();
-            if(id === 'transSection') fetchTransactions();
+            if(id === 'transSection' || id === 'walletHis') fetchTransactions();
+            if(id === 'referearn') {
+                document.getElementById('myReferCode').innerText = localStorage.getItem('userMobile') || "GUEST123";
+            }
         }
 
-        function closeSections() { document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none'); }
+        function closeSections() { 
+            document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none'); 
+        }
 
+        // --- 4. ENGINE INITIALIZE PROFILE LIFE STREAM ---
         window.onload = async () => {
-            if(!userId || userId === "undefined") { window.location.href = "index.html"; return; }
-            fetchProfile();
+            if(!userId || userId === "undefined") { 
+                window.location.href = "index.html"; 
+                return; 
+            }
+            await fetchProfile();
         };
 
+        // 🔥 FIXED ROUTE MAPPING: Endpoint change from details to profile to load data properly
         async function fetchProfile() {
             try {
-                const res = await fetch(`${API_BASE}/user/details/${userId}`);
-                if (!res.ok) throw new Error("Fetch failed");
+                const res = await fetch(`${API_BASE}/user/profile/${userId}`);
+                if (!res.ok) throw new Error("Fetch profile failed");
                 const data = await res.json();
                 
-                document.getElementById('userName').innerText = data.full_name || data.username || "User";
-                document.getElementById('sideName').innerText = data.full_name || data.username || "User";
-                document.getElementById('cashBal').innerText = data.wallet_balance || 0;
-                document.getElementById('earnBal').innerText = data.earning_balance || 0;
+                if(data.success && data.user) {
+                    const uData = data.user;
+                    
+                    document.getElementById('userName').innerText = uData.full_name || uData.username || "User";
+                    document.getElementById('sideName').innerText = uData.full_name || uData.username || "User";
+                    document.getElementById('cashBal').innerText = uData.wallet_balance || 0;
+                    document.getElementById('earnBal').innerText = uData.earning_balance || 0;
 
-                currentWinningBal = data.earning_balance || 0;
-                kycStatus = data.kyc_status;
+                    currentWinningBal = uData.earning_balance || 0;
+                    kycStatus = uData.kyc_status || 'pending';
 
-                document.getElementById('profUser').innerText = data.username || "N/A";
-                document.getElementById('profMob').innerText = data.mobile_no || "N/A";
-                document.getElementById('profDate').innerText = data.created_at ? new Date(data.created_at).toLocaleDateString() : "--";
+                    document.getElementById('profUser').innerText = uData.username || "N/A";
+                    document.getElementById('profMob').innerText = uData.mobile_no || "N/A";
+                    document.getElementById('profDate').innerText = uData.created_at ? new Date(uData.created_at).toLocaleDateString() : "--";
 
-                const kycContainer = document.getElementById('kycStatusContainer');
-                if (kycStatus === 'approved') {
-                    kycContainer.innerHTML = `<div class="kyc-status-box kyc-approved"><i class="fas fa-check-circle"></i> <b>KYC Verified!</b></div>`;
-                } else if (kycStatus === 'pending') {
-                    kycContainer.innerHTML = `<div class="kyc-status-box kyc-pending"><i class="fas fa-clock"></i> <b>KYC Under Review</b></div>`;
-                } else {
-                    kycContainer.innerHTML = `<button class="game-btn" onclick="location.href='kyc.html'">Update KYC / Bank Details</button>`;
+                    const kycContainer = document.getElementById('kycStatusContainer');
+                    if (kycStatus === 'approved' || kycStatus === 'verified') {
+                        kycContainer.innerHTML = `<div class="kyc-status-box kyc-approved"><i class="fas fa-check-circle"></i> <b>KYC Verified!</b></div>`;
+                    } else if (kycStatus === 'pending' || kycStatus === 'pending_login') {
+                        kycContainer.innerHTML = `<div class="kyc-status-box kyc-pending"><i class="fas fa-clock"></i> <b>KYC Under Review</b></div>`;
+                    } else {
+                        kycContainer.innerHTML = `<button class="game-btn" onclick="location.href='kyc.html'">Update KYC / Bank Details</button>`;
+                    }
                 }
-            } catch (err) { setTimeout(fetchProfile, 5000); }
+            } catch (err) { 
+                console.error("Profile auto retry delay loop invoked:", err.message);
+                setTimeout(fetchProfile, 5000); 
+            }
         }
 
+        // --- 5. WITHDRAWAL HANDLERS ---
         function openWithdrawModal() {
-            if(kycStatus !== 'approved') { alert("KYC approve karwana zaroori hai. Profile section mein KYC update karein!"); return; }
+            if(kycStatus !== 'approved' && kycStatus !== 'verified') { 
+                alert("KYC approve karwana zaroori hai. Profile section mein KYC update karein!"); 
+                return; 
+            }
             document.getElementById('popWinBal').innerText = currentWinningBal;
             document.getElementById('withdrawModal').style.display = 'flex';
         }
 
-        function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
+        function closeWithdrawModal() { 
+            document.getElementById('withdrawModal').style.display = 'none'; 
+        }
 
         async function proceedWithdraw() {
             const amount = parseFloat(document.getElementById('withAmt').value);
@@ -346,6 +369,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             } catch (err) { alert("Connection failed!"); }
         }
 
+        // --- 6. HISTORY LOGS COMPILER ---
         async function fetchGameHistory() {
             try {
                 const res = await fetch(`${API_BASE}/user/game-history/${userId}`);
@@ -355,7 +379,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         <div class="history-row"><span>Battle #${g.id}</span> <span>${new Date(g.created_at).toLocaleDateString()}</span></div>
                         <div class="history-row"><span>Amount: ₹${g.amount}</span> <span class="${g.winner_id == userId ? 'status-win' : 'status-lost'}">${g.winner_id == userId ? 'WON' : 'LOST'}</span></div>
                     </div>
-                `).join('') || '<p>No games played yet.</p>';
+                `).join('') || '<p style="text-align:center; padding:15px;">No games played yet.</p>';
             } catch(e) {}
         }
 
@@ -368,40 +392,21 @@ window.addEventListener('DOMContentLoaded', async () => {
                         <div class="history-row"><b>${t.type === 'deposit' ? 'DEPOSIT' : 'WITHDRAWAL'}</b> <span>${new Date(t.created_at).toLocaleDateString()}</span></div>
                         <div class="history-row"><span>₹${parseFloat(t.amount).toFixed(2)}</span> <span>${t.status.toUpperCase()}</span></div>
                     </div>
-                `).join('') || '<p>No transactions found.</p>';
+                `).join('') || '<p style="text-align:center; padding:15px;">No transactions found.</p>';
             } catch (err) {}
         }
 
-        // openSection function ko update karein
-function openSection(id) {
-    toggleMenu();
-    // Saare sections band karein
-    document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none');
-    // Target section kholein
-    const target = document.getElementById(id);
-    if(target) {
-        target.style.display = 'block';
-    } else {
-        alert("Ye section jald hi chalu hoga!");
-    }
+        // Referral share engine
+        function shareReferral() {
+            const code = document.getElementById('myReferCode').innerText;
+            const text = `Join Ludo Empire using my code ${code} and earn ₹10 bonus! Download now: https://khelbhailudo.onrender.com`;
+            window.open(`whatsapp://send?text=${encodeURIComponent(text)}`);
+        }
 
-    // Data load logic
-    if(id === 'gameHistorySection') fetchGameHistory();
-    if(id === 'transSection' || id === 'walletHis') fetchTransactions();
-    if(id === 'referearn') {
-        // Maan lijiye user ka Mobile No hi Refer Code hai
-        document.getElementById('myReferCode').innerText = localStorage.getItem('userMobile') || "GUEST123";
-    }
-}
-
-// Referral share karne ka function
-function shareReferral() {
-    const code = document.getElementById('myReferCode').innerText;
-    const text = `Join Ludo Empire using my code ${code} and earn ₹10 bonus! Download now: https://khelbhailudo.onrender.com;
-    window.open(`whatsapp://send?text=${encodeURIComponent(text)}`);
-}
-
-        function logout() { localStorage.clear(); window.location.href = "index.html"; }
+        function logout() { 
+            localStorage.clear(); 
+            window.location.href = "index.html"; 
+        }
     </script>
 </body>
 </html>
