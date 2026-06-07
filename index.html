@@ -52,18 +52,17 @@
     <div class="link-text" onclick="toggleModal('regModal', true)">New User? Register Here</div>
 </div>
 
-<!-- 📩 SECURE EMAIL DRIVEN PASSWORD RECOVERY POPUP -->
+<!-- 📩 SECURE TWO-STEP PASSWORD RECOVERY POPUP -->
 <div id="forgotModal" class="modal">
     <div class="modal-content" style="max-width: 400px; text-align: center;">
-        <h3 style="color: var(--gold); margin-top:0;">Password Recovery</h3>
+        <h3 style="color: var(--gold); margin-top:0;">Account Verification</h3>
         
-        <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalein, aapka password securely aapki mail par bhej diya jayega.</p>
-        <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
-        
-        <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Send Password to Mail</button>
-        <button style="background:#444; margin-top:10px; width: 100%;" onclick="toggleModal('forgotModal', false)">Cancel</button>
-    </div>
-</div>
+        <!-- Step 1: Email Input Form -->
+        <div id="forgotInputSection">
+            <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalkar account verify karein.</p>
+            <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
+            <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Verify Email</button>
+        </div>
 
         <!-- Step 2: Mobile Security Challenge (Initially Hidden) -->
         <div id="forgotMobileChallengeSection" style="display: none; margin-top: 15px;">
@@ -157,42 +156,45 @@ async function loginWithPassword() {
     }
 }
 
-// 🔥 SEND PASSWORD SECURELY TO REGISTERED EMAIL VIA API RELAY
+// 🔥 STEP 1: EMAIL VERIFY KARO AUR CHALLENGE MODE TRIGGER KARO
 async function submitForgotPassword() {
     const email = document.getElementById('forgotEmail').value.trim();
     const btn = document.getElementById('forgotSubmitBtn');
 
-    if(!email) return alert("Kripya apna Email Address daalein!");
+    if(!email) return alert("Kripya apni Email Address daalein!");
 
     btn.disabled = true;
-    btn.innerText = "Sending Mail...";
+    btn.innerText = "Checking...";
 
     try {
         const response = await fetch(`${API_BASE}/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email: email })
         });
 
         const data = await response.json();
 
-        if (data.success) {
-            alert("📩 SUCCESS!\nAapka password aapke registered Email ID par safely bhej diya gaya hai.\nKripya apna Inbox ya Spam folder check karein.");
-            toggleModal('forgotModal', false);
-            document.getElementById('forgotEmail').value = '';
+        if (data.success && data.step === 1) {
+            // Challenge screen load karein
+            document.getElementById('challengeUser').innerText = data.username;
+            document.getElementById('challengeMobile').innerText = data.maskedMobile;
+
+            // Forms switch karein
+            document.getElementById('forgotInputSection').style.display = 'none';
+            document.getElementById('forgotMobileChallengeSection').style.display = 'block';
         } else {
             alert("Error: " + data.error);
         }
     } catch (error) {
         console.error(error);
-        alert("Failed to connect with mail server pipeline.");
+        alert("Failed to sync recovery pipeline.");
     } finally {
         btn.disabled = false;
-        btn.innerText = "Send Password to Mail";
+        btn.innerText = "Verify Email";
     }
 }
 
-    
 // 🔥 STEP 2: POORA MOBILE NUMBER INJECT KARKE ASLI PASSWORD DEKHO
 async function verifyMobileAndReveal() {
     const email = document.getElementById('forgotEmail').value.trim();
