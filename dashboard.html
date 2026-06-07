@@ -299,16 +299,14 @@
         };
 
         // 🔥 FIXED ROUTE MAPPING: Endpoint change from details to profile to load data properly
-     async function fetchProfile() {
+        async function fetchProfile() {
             try {
-                // Purana sateek working endpoint hit karein
-                const res = await fetch(`${API_BASE}/user/details/${userId}`);
+                const res = await fetch(`${API_BASE}/user/profile/${userId}`);
                 if (!res.ok) throw new Error("Fetch profile failed");
                 const data = await res.json();
                 
-                // Agar data direct array ya flat object mil raha hai (bina data.user ke)
-                if(data) {
-                    const uData = data.user || data; // Dono structures ke liye safe fallback
+                if(data.success && data.user) {
+                    const uData = data.user;
                     
                     document.getElementById('userName').innerText = uData.full_name || uData.username || "User";
                     document.getElementById('sideName').innerText = uData.full_name || uData.username || "User";
