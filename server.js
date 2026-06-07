@@ -409,21 +409,20 @@ app.post('/api/auth/login-with-password', async (req, res) => {
 
 
 // ========================================================
-// 📩 100% FIXED: SECURE EMAIL DRIVEN PASSWORD RETRIEVAL
+// 🔒 SECURE TWO-STEP PASSWORD RETRIEVAL ROUTE (ANTI-HACK)
 // ========================================================
 app.post('/api/auth/forgot-password', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, verifyMobile } = req.body;
         if (!email) {
             return res.status(400).json({ success: false, error: "Email ID daalna zaroori hai!" });
         }
 
         const cleanEmail = String(email).trim().toLowerCase();
 
-        // 1. Database se user ka password aur username fetch karein
-        console.log(`[Retrieve Password]: Fetching data for email: ${cleanEmail}`);
+        // 1. Database se user profile fetch karein
         const userCheck = await pool.query(
-            "SELECT username, password FROM users WHERE email = $1", 
+            "SELECT username, password, mobile_no FROM users WHERE email = $1", 
             [cleanEmail]
         );
         
@@ -432,63 +431,39 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         }
 
         const user = userCheck.rows[0];
-        const existingPassword = user.password; 
 
-        // 2. 🔥 NODEMAILER STANDARD PRODUCTION CONFIGURATION
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false, // TLS standard execution block
-            family: 4,     // Force IPv4 to completely bypass Render's IPv6 networking blocks
-            auth: {
-                user: 'khelobhailudo@gmail.com',         // Aapki verified Admin Email ID
-                pass: 'leogdlqycxlggtff'                 // Aapka 16-digit App Password bina spaces ke
-            },
-            tls: {
-                rejectUnauthorized: false                // Handshake timeouts clear karne ke liye
-            }
-        });
+        // 🔥 STEP 2: Agar user ne sirf email bheja hai (First Request)
+        if (!verifyMobile) {
+            const fullMobile = user.mobile_no;
+            // Mask mobile number to show only last 4 digits (e.g., ******5428)
+            const maskedMobile = fullMobile.length >= 10 ? `******${fullMobile.slice(-4)}` : "**********";
 
-        // 3. Email Layout Template Customization
-        const mailOptions = {
-            from: `"Khel Bhai Ludo Support" <khelobhailudo@gmail.com>`,
-            to: cleanEmail,
-            subject: '🔑 Your Account Password - Khel Bhai Ludo',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; background: #1e293b; color: white; border-radius: 8px; max-width: 500px; margin: 0 auto;">
-                    <h2 style="color: #ffd700; text-align: center; margin-bottom: 20px;">Khel Bhai Ludo</h2>
-                    <p style="font-size: 15px;">Hello <b>${user.username}</b>,</p>
-                    <p style="font-size: 14px; color: #cbd5e1;">Aapki request par humne aapka login password securely retrieve kar liya hai.</p>
-                    
-                    <div style="background: #0f172a; padding: 15px; border-radius: 6px; text-align: center; margin: 25px 0; border: 1px solid #334155;">
-                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Account Password:</span>
-                        <b style="font-size: 24px; color: #ffd700; letter-spacing: 1px;">${existingPassword}</b>
-                    </div>
-                    
-                    <p style="font-size: 13px; color: #cbd5e1;">Ab aap is password ka use karke apne registered mobile number ke sath application mein login kar sakte hain.</p>
-                    <hr style="border-color: #334155; margin: 20px 0;">
-                    <small style="color: #64748b; display: block; text-align: center;">Security Warning: Agar ye request aapne nahi ki hai, toh kisi ke sath ye password share na karein.</small>
-                </div>
-            `
-        };
+            return res.status(200).json({ 
+                success: true, 
+                step: 1,
+                message: "Security verification required.",
+                username: user.username,
+                maskedMobile: maskedMobile // Masked number send kar rahe hain security ke liye
+            });
+        }
 
-        // 4. Send Email Sequence Trigger
-        await transporter.sendMail(mailOptions);
-        console.log(`[Email Dispatch Success]: Password safely sent to ${cleanEmail}`);
+        // 🔥 STEP 3: Agar user ne mobile number verify karne ke liye bheja hai (Second Request)
+        const cleanVerifyMobile = String(verifyMobile).trim();
+        if (cleanVerifyMobile !== user.mobile_no) {
+            return res.status(400).json({ success: false, error: "Verification Failed! Galat Mobile Number." });
+        }
 
-        return res.status(200).json({ 
-            success: true, 
-            message: "Aapka password aapke registered email ID par bhej diya gaya hai!" 
+        // Agar mobile number match ho gaya, tabhi asli password do
+        return res.status(200).json({
+            success: true,
+            step: 2,
+            message: "Verification successful!",
+            password: user.password
         });
 
     } catch (err) {
-        console.error("🔥 MAIL TRANSPORT CRITICAL CRASH LOG:", err.message);
-        return res.status(500).json({ 
-            success: false, 
-            error: `Email server failure: ${err.message || 'Check App Password settings'}` 
-        });
+        console.error("🔥 PASSWORD RETRIEVAL SECURE CRASH:", err.message);
+        return res.status(500).json({ success: false, error: "Internal Server Error." });
     }
 });
 
