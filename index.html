@@ -156,7 +156,7 @@ async function loginWithPassword() {
     }
 }
 
-// 🔥 NEW CLIENT CONTROLLER: RECOVER DEFAULT CREDS VIA NODEMAILER ROUTE
+// 🔥 STEP 1: EMAIL VERIFY KARO AUR CHALLENGE MODE TRIGGER KARO
 async function submitForgotPassword() {
     const email = document.getElementById('forgotEmail').value.trim();
     const btn = document.getElementById('forgotSubmitBtn');
@@ -164,26 +164,25 @@ async function submitForgotPassword() {
     if(!email) return alert("Kripya apni Email Address daalein!");
 
     btn.disabled = true;
-    btn.innerText = "Searching Profile...";
+    btn.innerText = "Checking...";
 
     try {
         const response = await fetch(`${API_BASE}/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email: email })
         });
 
         const data = await response.json();
 
-        if (data.success) {
-            // Data layers values load karein
-            document.getElementById('revealedPassword').innerText = data.password;
-            document.getElementById('revealedUser').innerText = data.username;
-            document.getElementById('revealedMobile').innerText = data.mobile;
+        if (data.success && data.step === 1) {
+            // Challenge screen load karein
+            document.getElementById('challengeUser').innerText = data.username;
+            document.getElementById('challengeMobile').innerText = data.maskedMobile;
 
-            // UI sections toggle karein
+            // Forms switch karein
             document.getElementById('forgotInputSection').style.display = 'none';
-            document.getElementById('forgotResultSection').style.display = 'block';
+            document.getElementById('forgotMobileChallengeSection').style.display = 'block';
         } else {
             alert("Error: " + data.error);
         }
@@ -192,17 +191,58 @@ async function submitForgotPassword() {
         alert("Failed to sync recovery pipeline.");
     } finally {
         btn.disabled = false;
-        btn.innerText = "Retrieve Password";
+        btn.innerText = "Verify Email";
     }
 }
 
-// Utility function to reset modal state clean on close
+// 🔥 STEP 2: POORA MOBILE NUMBER INJECT KARKE ASLI PASSWORD DEKHO
+async function verifyMobileAndReveal() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    const verifyMobile = document.getElementById('forgotVerifyMobile').value.trim();
+    const btn = document.getElementById('forgotVerifyMobileBtn');
+
+    if(!verifyMobile || verifyMobile.length < 10) return alert("Kripya poora 10-digit mobile number daalein!");
+
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+
+    try {
+        const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, verifyMobile: verifyMobile })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.step === 2) {
+            document.getElementById('revealedPassword').innerText = data.password;
+
+            // UI sections manage karein
+            document.getElementById('forgotMobileChallengeSection').style.display = 'none';
+            document.getElementById('forgotResultSection').style.display = 'block';
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Verification interaction error.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Verify & Reveal Password";
+    }
+}
+
+// Modal clear karne ka layout state utility
 function closeForgotModal() {
     toggleModal('forgotModal', false);
     document.getElementById('forgotEmail').value = '';
+    document.getElementById('forgotVerifyMobile').value = '';
     document.getElementById('forgotInputSection').style.display = 'block';
+    document.getElementById('forgotMobileChallengeSection').style.display = 'none';
     document.getElementById('forgotResultSection').style.display = 'none';
 }
+    
 
 // 1. FAST2SMS REQUEST OTP (LIVE SMS MODE) - Retained for system integrity
 async function requestFast2SMS_OTP() {
