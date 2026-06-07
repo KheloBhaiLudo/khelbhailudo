@@ -466,6 +466,38 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 
+// ========================================================
+// ⚡ PROFILE FETCH ROUTE FOR DASHBOARD SYNC
+// ========================================================
+app.get('/api/user/profile/:userId', async (req, res) => {
+    try {
+        const { userId } = req.getParams || req.params;
+        
+        console.log(`[Profile Fetch Engine]: Requesting details for User ID: ${userId}`);
+        
+        // Database se details fetch karein
+        const userQuery = await pool.query(
+            "SELECT id, username, full_name, mobile_no, email, wallet_balance, earning_balance, kyc_status, created_at FROM users WHERE id = $1",
+            [userId]
+        );
+
+        if (userQuery.rows.length === 0) {
+            return res.status(404).json({ success: false, error: "User profile not found in database." });
+        }
+
+        // Dashboard.html isi 'success' aur 'user' object ka wait karta hai
+        return res.status(200).json({
+            success: true,
+            user: userQuery.rows[0]
+        });
+
+    } catch (err) {
+        console.error("Critical Profile Route Crash:", err.message);
+        return res.status(500).json({ success: false, error: "Internal Server Error" });
+    }
+});
+
+
 // SAFE FALLBACK: Frontend agar galti se purana route bhi hit karega, toh ye route use handle kar lega bina crash kiye
 app.post('/api/verify-login-firebase', async (req, res) => {
     const { mobile } = req.body;
