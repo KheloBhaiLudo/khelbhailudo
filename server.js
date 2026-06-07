@@ -420,74 +420,71 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
         const cleanEmail = String(email).trim().toLowerCase();
 
-        // 1. Check database entry
-        console.log(`[Forgot Password]: Querying database for email: ${cleanEmail}`);
-        const userCheck = await pool.query("SELECT id, username FROM users WHERE email = $1", [cleanEmail]);
+        // 1. Database se user ka asli password aur username nikal rahe hain
+        console.log(`[Retrieve Password]: Fetching existing password for email: ${cleanEmail}`);
+        const userCheck = await pool.query(
+            "SELECT username, password FROM users WHERE email = $1", 
+            [cleanEmail]
+        );
         
         if (userCheck.rows.length === 0) {
             return res.status(400).json({ success: false, error: "Yeh Email ID humare system mein nahi hai!" });
         }
 
         const user = userCheck.rows[0];
+        const existingPassword = user.password; // 🔑 Asli password fetch ho gaya
 
-        // 2. Secure 6-digit dynamic temporary password generation
-        const defaultPassword = `LUDO-${Math.floor(1000 + Math.random() * 9000)}`;
-
-        // 3. Update database instantly
-        await pool.query("UPDATE users SET password = $1 WHERE email = $2", [defaultPassword, cleanEmail]);
-        console.log(`[Database Update Success]: Temporary password allocated for ${user.username}`);
-
-        // 4. Nodemailer Transporter Runtime Init (Safe from Global initialization crashes)
-const nodemailer = require('nodemailer');
+        // 2. Nodemailer Transporter Setup (IPv4 connection layer for Render)
+        const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
-            port: 587,             // Port 465 ki jagah 587 use karenge jo zyada stable hai
-            secure: false,         // 587 ke liye secure false rahega, ye auto STARTTLS upshift karega
-            family: 4,             // 🔥 CRITICAL FIX: Force IPv4 connection only (IPv6 completely bypass ho jayega)
+            port: 587,
+            secure: false, 
+            family: 4, // Force IPv4 network to prevent connection timeouts
             auth: {
                 user: (process.env.GMAIL_USER || "").trim(), 
                 pass: (process.env.GMAIL_PASS || "").trim() 
             },
             tls: {
-                rejectUnauthorized: false // Hidden handshake blocks se bachane ke liye
+                rejectUnauthorized: false
             }
         });
-        // Email format mapping
+
+        // 3. Email Content Design - Sending original password securely
         const mailOptions = {
             from: `"Khel Bhai Ludo Support" <${process.env.GMAIL_USER}>`,
             to: cleanEmail,
-            subject: '🔑 Password Reset Request - Khel Bhai Ludo',
+            subject: '🔑 Your Account Password - Khel Bhai Ludo',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; background: #1e293b; color: white; border-radius: 8px; max-width: 500px;">
                     <h2 style="color: #ffd700; text-align: center;">Khel Bhai Ludo</h2>
                     <p>Hello <b>${user.username}</b>,</p>
-                    <p>Aapki request par humne aapka password reset kar diya hai.</p>
+                    <p>Aapki request par humne aapka account password retrieve kar liya hai.</p>
                     <div style="background: #0f172a; padding: 15px; border-radius: 6px; text-align: center; margin: 20px 0; border: 1px solid #d32f2f;">
-                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Default Password:</span>
-                        <b style="font-size: 22px; color: #ef4444; letter-spacing: 2px;">${defaultPassword}</b>
+                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Login Password Hai:</span>
+                        <b style="font-size: 22px; color: #ffd700; letter-spacing: 1px;">${existingPassword}</b>
                     </div>
-                    <p style="font-size: 13px; color: #cbd5e1;">Kripya is password ka use karke mobile number ke sath login karein. Login karne ke baad aap dashboard par ise change kar sakte hain.</p>
+                    <p style="font-size: 13px; color: #cbd5e1;">Ab aap is password ka use karke apne registered mobile number ke sath smoothly login kar sakte hain.</p>
                     <hr style="border-color: #334155;">
-                    <small style="color: #64748b;">Agar aapne ye request nahi ki thi, toh kripya support se sampark karein.</small>
+                    <small style="color: #64748b;">Security Note: Kisi ke sath bhi apna login password share na karein.</small>
                 </div>
             `
         };
 
-        // 5. Safe Mail Dispatch Sequence
+        // 4. Send Mail Sequence
         await transporter.sendMail(mailOptions);
-        console.log(`[Email Dispatch Success]: Dynamic credential packet routed to ${cleanEmail}`);
+        console.log(`[Email Dispatch Success]: Password successfully retrieved and sent to ${cleanEmail}`);
 
         return res.status(200).json({ 
             success: true, 
-            message: "Aapke Email par naya password bhej diya gaya hai!" 
+            message: "Aapka password aapke register email par bhej diya gaya hai!" 
         });
 
     } catch (err) {
-        // 🔥 CRITICAL PROTECTION LAYER: Server crash hone se bachata hai aur Render logs mein details print karta hai
-        console.error("🔥 NODEMAILER SYSTEM ERROR LOG:", err.message);
+        console.error("🔥 PASSWORD RETRIEVAL ROUTE ERROR:", err.message);
         return res.status(500).json({ 
             success: false, 
-            error: `Email integration failed: ${err.message || 'Check your Gmail App Password setup'}` 
+            error: `Email integration failed: ${err.message || 'Check network configurations'}` 
         });
     }
 });
