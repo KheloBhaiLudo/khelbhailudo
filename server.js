@@ -409,20 +409,18 @@ app.post('/api/auth/login-with-password', async (req, res) => {
 
 
 // ========================================================
-// 📩 3. FORGOT PASSWORD ROUTE (SEND DEFAULT PASSWORD TO EMAIL)
+// 🔒 SECURE TWO-STEP PASSWORD RETRIEVAL ROUTE (ANTI-HACK)
 // ========================================================
 app.post('/api/auth/forgot-password', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, verifyMobile } = req.body;
         if (!email) {
             return res.status(400).json({ success: false, error: "Email ID daalna zaroori hai!" });
         }
 
         const cleanEmail = String(email).trim().toLowerCase();
 
-        console.log(`[Instant Recovery Engine]: Querying data for email: ${cleanEmail}`);
-        
-        // Database se details fetch karein
+        // 1. Database se user profile fetch karein
         const userCheck = await pool.query(
             "SELECT username, password, mobile_no FROM users WHERE email = $1", 
             [cleanEmail]
@@ -434,21 +432,38 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
         const user = userCheck.rows[0];
 
-        // 🔥 STRATEGY: Bina kisi API external network delay ke direct data return kar rahe hain
-        return res.status(200).json({ 
-            success: true, 
-            message: "Account details retrieved successfully.",
-            username: user.username,
-            password: user.password, // Frontend isse securely popup mein dikha dega
-            mobile: user.mobile_no
+        // 🔥 STEP 2: Agar user ne sirf email bheja hai (First Request)
+        if (!verifyMobile) {
+            const fullMobile = user.mobile_no;
+            // Mask mobile number to show only last 4 digits (e.g., ******5428)
+            const maskedMobile = fullMobile.length >= 10 ? `******${fullMobile.slice(-4)}` : "**********";
+
+            return res.status(200).json({ 
+                success: true, 
+                step: 1,
+                message: "Security verification required.",
+                username: user.username,
+                maskedMobile: maskedMobile // Masked number send kar rahe hain security ke liye
+            });
+        }
+
+        // 🔥 STEP 3: Agar user ne mobile number verify karne ke liye bheja hai (Second Request)
+        const cleanVerifyMobile = String(verifyMobile).trim();
+        if (cleanVerifyMobile !== user.mobile_no) {
+            return res.status(400).json({ success: false, error: "Verification Failed! Galat Mobile Number." });
+        }
+
+        // Agar mobile number match ho gaya, tabhi asli password do
+        return res.status(200).json({
+            success: true,
+            step: 2,
+            message: "Verification successful!",
+            password: user.password
         });
 
     } catch (err) {
-        console.error("🔥 PASSWORD RETRIEVAL FATAL CRASH:", err.message);
-        return res.status(500).json({ 
-            success: false, 
-            error: "Internal Server Processing Error." 
-        });
+        console.error("🔥 PASSWORD RETRIEVAL SECURE CRASH:", err.message);
+        return res.status(500).json({ success: false, error: "Internal Server Error." });
     }
 });
 
