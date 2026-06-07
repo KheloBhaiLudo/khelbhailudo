@@ -22,6 +22,17 @@ const pool = require('./db');
 
 // FIXED: Agar db.js ke andar 'supabase' exported hai toh thik hai, nahi toh collision se bachne ke liye standard check laga diya hai
 const supabaseClientInstance = pool.supabase || global.supabase;
+const nodemailer = require('nodemailer');
+
+// 1. Gmail Transporter Setup
+// (Render ke Environment Variables mein GMAIL_USER aur GMAIL_PASS daal dena)
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_USER, 
+        pass: process.env.GMAIL_PASS  // Gmail ka 16-digit App Password (normal password nahi)
+    }
+});
 
 
 // ========================================================
@@ -321,184 +332,140 @@ const upload = multer({
 
 // --- ROUTES ---
 
-// 1. User Registration (Strict Cloud Stream Flow - Target mapping optimized)
+// ========================================================
+// 📝 1. REGISTER ROUTE (WITH EMAIL & PASSWORD)
+// ========================================================
 app.post('/api/register', async (req, res) => {
     try {
-        console.log("--- Processing Fast Registration Layer (JSON Mode) ---");
-        
-        // Ab req.body ekdum perfectly parse hoga
         const { fullName, email, mobile, username, password, referred_by } = req.body;
         
         if (!fullName || !email || !mobile || !username || !password) {
-            return res.status(400).json({ 
-                success: false, 
-                error: "Validation Error: Saari details bharna anivarya hai!" 
-            });
+            return res.status(400).json({ success: false, error: "Saari details bharna anivarya hai!" });
         }
 
         const parsedReferBy = referred_by && !isNaN(referred_by) ? parseInt(referred_by) : null;
 
+        // Aadhaar URLs ko null rkh rahe hain jaisa pehle set kiya tha
         await pool.query(
             `INSERT INTO users (
                 full_name, email, mobile_no, username, password, 
                 aadhar_front_url, aadhar_back_url, is_verified, kyc_status, referred_by
              ) VALUES ($1, $2, $3, $4, $5, null, null, true, 'verified', $6)`,
-            [fullName, email, mobile, username, password, parsedReferBy]
+            [fullName, email.trim().toLowerCase(), mobile.trim(), username.trim(), password, parsedReferBy]
         );
         
-        return res.status(200).json({ success: true, message: "Cloud registration successful!" });
-
+        return res.status(200).json({ success: true, message: "Registration successful!" });
     } catch (err) {
         console.error("Registration Failure:", err.message);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: "Username ya Mobile pehle se exist karta hai!" });
     }
 });
 
 
 // ========================================================
-// ⚡ 100% OFFICIAL FAST2SMS SMART OTP API INTEGRATION
+// 🔑 2. LOGIN ROUTE (MOBILE + PASSWORD) - INSTEAD OF OTP
 // ========================================================
-app.post('/api/auth/send-otp', async (req, res) => {
+app.post('/api/auth/login-with-password', async (req, res) => {
     try {
-        const { mobile } = req.body;
-        if (!mobile || String(mobile).trim().length !== 10) {
-            return res.status(400).json({ success: false, error: "Sahi 10-digit mobile number daalein!" });
+        const { mobile, password } = req.body;
+
+        if (!mobile || !password) {
+            return res.status(400).json({ success: false, error: "Mobile number aur Password dono zaroori hain!" });
         }
 
         const cleanMobile = String(mobile).trim();
-        const otp = Math.floor(1000 + Math.random() * 9000);
 
-        // Session memory backup mapping
-        otpStore[cleanMobile] = {
-            otp: String(otp),
-            expiresAt: Date.now() + 5 * 60 * 1000 // 5 Minutes
-        };
+        // Database se password aur verification status check karein
+        const userCheck = await pool.query(
+            "SELECT id, password, is_verified FROM users WHERE mobile_no = $1", 
+            [cleanMobile]
+        );
 
-        console.log(`[Official OTP Route Initiated]: Generating OTP ${otp} for ${cleanMobile}`);
+        if (userCheck.rows.length === 0) {
+            return res.status(400).json({ success: false, error: "Yeh mobile number registered nahi hai!" });
+        }
 
-        const rawApiKey = process.env.FAST2SMS_API_KEY || "";
-        const cleanApiKey = rawApiKey.replace(/\s+/g, ''); 
+        const user = userCheck.rows[0];
 
-        // 🔥 OFFICIAL DOCUMENTATION SYNC (image_f23be3.png)
-        // URL: POST https://www.fast2sms.com/dev/otp/send
-        const fast2smsOtpUrl = "https://www.fast2sms.com/dev/otp/send";
-        
-        // Structured Body Payload format matching your documentation interface
-        const basePayload = {
-            "mobile": cleanMobile,
-            "otp_id": "your_otp_id_here", // ⚠️ Check Step 2 Below
-            "otp_expiry": 5,              // Set dynamic validation window to 5 minutes
-            "otp": String(otp)            // Sending our locally validated random number string
-        };
+        // Strict password matching
+        if (user.password !== password) {
+            return res.status(400).json({ success: false, error: "Galat password! Kripya sahi password daalein." });
+        }
 
-        const smsResponse = await axios.post(fast2smsOtpUrl, basePayload, {
-            headers: {
-                'authorization': cleanApiKey,
-                'accept': 'application/json',
-                'content-type': 'application/json'
-            }
+        if (!user.is_verified) {
+            return res.status(400).json({ success: false, error: "Aapka account suspended ya unverified hai." });
+        }
+
+        return res.status(200).json({ 
+            success: true, 
+            userId: user.id,
+            termsAccepted: true
         });
 
-        if (smsResponse.data && (smsResponse.data.return === true || smsResponse.data.status_code === 200)) {
-            console.log(`[Official Gateway Success]: Secured smart OTP dispatched to ${cleanMobile}`);
-            return res.status(200).json({ 
-                success: true, 
-                message: "OTP successfully sent to your device." 
-            });
-        } else {
-            console.error("Fast2SMS API Refusal Payload:", smsResponse.data);
-            return res.status(500).json({ 
-                success: false, 
-                error: smsResponse.data.message || "Gateway configuration mismatch error." 
-            });
-        }
-
-    } catch (error) {
-        if (error.response) {
-            console.error("🔥 Fast2SMS Official API Error Logs:", JSON.stringify(error.response.data));
-            return res.status(500).json({ 
-                success: false, 
-                error: `SMS Gateway Error: ${error.response.data.message || 'Smart OTP Configuration Failed'}` 
-            });
-        }
-        console.error("Critical Server Failure in Official SMS Router:", error.message);
-        return res.status(500).json({ success: false, error: "Internal Server Network Timeout." });
+    } catch (err) {
+        console.error("Login Error:", err.message);
+        return res.status(500).json({ success: false, error: "Server error during login." });
     }
 });
 
 
+// ========================================================
+// 📩 3. FORGOT PASSWORD ROUTE (SEND DEFAULT PASSWORD TO EMAIL)
+// ========================================================
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, error: "Email ID daalna zaroori hai!" });
 
-// ==========================================================
-// 🔥 100% FIXED: COMBINED OTP VERIFY & LOGIN ROUTE ( airtight )
-// ==========================================================
-app.post('/api/auth/verify-otp', async (req, res) => {
-    const { mobile, otp } = req.body;
+        const cleanEmail = String(email).trim().toLowerCase();
 
-    if (!mobile || !otp) {
-        return res.status(400).json({ success: false, error: "Mobile number aur OTP dono zaroori hain!" });
-    }
-
-    const cleanMobile = String(mobile).trim();
-    const cleanOtp = String(otp).trim();
-
-    console.log(`[Verification Stream] Verifying OTP for Mobile: ${cleanMobile}, Entered OTP: ${cleanOtp}`);
-
-    const record = otpStore[cleanMobile];
-
-    // 1. Check agar memory cache mein code exist karta hai
-    if (!record) {
-        return res.status(400).json({ success: false, error: "Kripya pehle OTP request karein!" });
-    }
-
-    // 2. Check agar OTP expire ho chuka hai
-    if (Date.now() > record.expiresAt) {
-        delete otpStore[cleanMobile];
-        return res.status(400).json({ success: false, error: "OTP expire ho gaya hai! Dubara bhein." });
-    }
-
-    // 3. 🔥 MATCH FIX: Convert both values to String to prevent type-mismatch bugs (Number vs String)
-    if (String(record.otp).trim() === cleanOtp) {
-        
-        // OTP verified! Token clear karein instantly
-        delete otpStore[cleanMobile];
-        
-        try {
-            // 4. Verification successful hote hi direct database se user ko log-in karwao
-            console.log(`[Login Process] Fetching database profiles for: ${cleanMobile}`);
-            const userCheck = await pool.query("SELECT id, is_verified FROM users WHERE mobile_no = $1", [cleanMobile]);
-
-            if (userCheck.rows.length === 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    error: "Aapka number registered nahi hai! Kripya pehle Register Here par jaakar account banayein." 
-                });
-            }
-
-            const user = userCheck.rows[0];
-            const isVerified = (user.is_verified === true || user.is_verified === 'true' || user.is_verified === 'TRUE');
-            
-            if (!isVerified) {
-                return res.status(400).json({ 
-                    success: false, 
-                    error: "Aapka account abhi Pending Approval mein hai. Admin ke approve karne tak wait karein!" 
-                });
-            }
-
-            // Sub-modules pipeline criteria met -> Pass token back to frontend dashboard
-            return res.status(200).json({ 
-                success: true, 
-                userId: user.id,
-                termsAccepted: true
-            });
-
-        } catch (dbErr) {
-            console.error("Database Login Internal Crash:", dbErr.message);
-            return res.status(500).json({ success: false, error: "Database error during session generation." });
+        // Check karein kya ye email database mein hai?
+        const userCheck = await pool.query("SELECT id, username FROM users WHERE email = $1", [cleanEmail]);
+        if (userCheck.rows.length === 0) {
+            return res.status(400).json({ success: false, error: "Yeh Email ID humare system mein nahi hai!" });
         }
-    } else {
-        return res.status(400).json({ success: false, error: "Galat OTP daala hai, kripya check karein." });
+
+        const user = userCheck.rows[0];
+
+        // Ek secure 6-digit dynamic temporary default password banayein
+        const defaultPassword = `LUDO-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        // Database mein user ka password is temporary password se update kar dein
+        await pool.query("UPDATE users SET password = $1 WHERE email = $2", [defaultPassword, cleanEmail]);
+
+        // Email content design
+        const mailOptions = {
+            from: `"Khel Bhai Ludo Support" <${process.env.GMAIL_USER}>`,
+            to: cleanEmail,
+            subject: '🔑 Password Reset Request - Khel Bhai Ludo',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; background: #1e293b; color: white; border-radius: 8px; max-width: 500px;">
+                    <h2 style="color: #ffd700; text-align: center;">Khel Bhai Ludo</h2>
+                    <p>Hello <b>${user.username}</b>,</p>
+                    <p>Aapki request par humne aapka password reset kar diya hai.</p>
+                    <div style="background: #0f172a; padding: 15px; border-radius: 6px; text-align: center; margin: 20px 0; border: 1px solid #d32f2f;">
+                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Default Password:</span>
+                        <b style="font-size: 22px; color: #ef4444; letter-spacing: 2px;">${defaultPassword}</b>
+                    </div>
+                    <p style="font-size: 13px; color: #cbd5e1;">Kripya is password ka use karke mobile number ke sath login karein. Login karne ke baad aap dashboard par ise change kar sakte hain.</p>
+                    <hr style="border-color: #334155;">
+                    <small style="color: #64748b;">Agar aapne ye request nahi ki thi, toh kripya support se sampark karein.</small>
+                </div>
+            `
+        };
+
+        // Send Email
+        await transporter.sendMail(mailOptions);
+        console.log(`[Email Sent]: Default password sent to ${cleanEmail}`);
+
+        return res.status(200).json({ success: true, message: "Aapke Email par naya password bhej diya gaya hai!" });
+
+    } catch (err) {
+        console.error("Forgot Password Error:", err.message);
+        return res.status(500).json({ success: false, error: "Email bhejne mein koi dikkat aayi hai." });
     }
 });
+
 
 // SAFE FALLBACK: Frontend agar galti se purana route bhi hit karega, toh ye route use handle kar lega bina crash kiye
 app.post('/api/verify-login-firebase', async (req, res) => {
