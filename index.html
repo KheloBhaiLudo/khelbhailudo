@@ -52,14 +52,29 @@
     <div class="link-text" onclick="toggleModal('regModal', true)">New User? Register Here</div>
 </div>
 
-<!-- 📩 DYNAMIC FORGOT PASSWORD EMAIL INPUT MODAL -->
+<!-- 📩 SECURE PASSWORD RECOVERY POPUP INTERFACE -->
 <div id="forgotModal" class="modal">
-    <div class="modal-content">
-        <h3>Recover Account Password</h3>
-        <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalein, aapki mail par temporary password bhej diya jayega.</p>
-        <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
-        <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Send Default Password</button>
-        <button style="background:#444; margin-top:10px;" onclick="toggleModal('forgotModal', false)">Cancel</button>
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <h3 style="color: var(--gold); margin-top:0;">Password Recovery</h3>
+        
+        <!-- Input Form Section -->
+        <div id="forgotInputSection">
+            <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalein, aapka password instantly screen par dikh jayega.</p>
+            <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
+            <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Retrieve Password</button>
+        </div>
+
+        <!-- Dynamic Success Reveal Section (Initially Hidden) -->
+        <div id="forgotResultSection" style="display: none; background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid var(--primary); margin-top: 15px;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Login Password Hai:</span>
+            <b id="revealedPassword" style="font-size: 24px; color: var(--gold); letter-spacing: 1px;">XXXXXX</b>
+            <p style="font-size: 12px; color: #cbd5e1; margin-top: 10px; text-align: left;">
+                👤 <b>Username:</b> <span id="revealedUser">--</span><br>
+                📱 <b>Mobile No:</b> <span id="revealedMobile">--</span>
+            </p>
+        </div>
+
+        <button style="background:#444; margin-top:15px; width: 100%;" onclick="closeForgotModal()">Close</button>
     </div>
 </div>
 
@@ -141,7 +156,7 @@ async function submitForgotPassword() {
     if(!email) return alert("Kripya apni Email Address daalein!");
 
     btn.disabled = true;
-    btn.innerText = "Processing Request...";
+    btn.innerText = "Searching Profile...";
 
     try {
         const response = await fetch(`${API_BASE}/auth/forgot-password`, {
@@ -153,20 +168,32 @@ async function submitForgotPassword() {
         const data = await response.json();
 
         if (data.success) {
-            // 🔥 UPDATED FEEDBACK ALERT: Informs user that the credentials are hit on SMS
-            alert("📩 SUCCESS!\nAapka password aapke registered mobile number par SMS ke zariye bhej diya gaya hai. Kripya apna Message Box check karein.");
-            toggleModal('forgotModal', false);
-            document.getElementById('forgotEmail').value = '';
+            // Data layers values load karein
+            document.getElementById('revealedPassword').innerText = data.password;
+            document.getElementById('revealedUser').innerText = data.username;
+            document.getElementById('revealedMobile').innerText = data.mobile;
+
+            // UI sections toggle karein
+            document.getElementById('forgotInputSection').style.display = 'none';
+            document.getElementById('forgotResultSection').style.display = 'block';
         } else {
             alert("Error: " + data.error);
         }
     } catch (error) {
         console.error(error);
-        alert("Failed to compile cloud recovery routing.");
+        alert("Failed to sync recovery pipeline.");
     } finally {
         btn.disabled = false;
-        btn.innerText = "Send Default Password";
+        btn.innerText = "Retrieve Password";
     }
+}
+
+// Utility function to reset modal state clean on close
+function closeForgotModal() {
+    toggleModal('forgotModal', false);
+    document.getElementById('forgotEmail').value = '';
+    document.getElementById('forgotInputSection').style.display = 'block';
+    document.getElementById('forgotResultSection').style.display = 'none';
 }
 
 // 1. FAST2SMS REQUEST OTP (LIVE SMS MODE) - Retained for system integrity
