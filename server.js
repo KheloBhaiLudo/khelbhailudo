@@ -438,15 +438,20 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         console.log(`[Database Update Success]: Temporary password allocated for ${user.username}`);
 
         // 4. Nodemailer Transporter Runtime Init (Safe from Global initialization crashes)
-        const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,             // Port 465 ki jagah 587 use karenge jo zyada stable hai
+            secure: false,         // 587 ke liye secure false rahega, ye auto STARTTLS upshift karega
+            family: 4,             // 🔥 CRITICAL FIX: Force IPv4 connection only (IPv6 completely bypass ho jayega)
             auth: {
                 user: (process.env.GMAIL_USER || "").trim(), 
-                pass: (process.env.GMAIL_PASS || "").trim() // 16-digit app password string
+                pass: (process.env.GMAIL_PASS || "").trim() 
+            },
+            tls: {
+                rejectUnauthorized: false // Hidden handshake blocks se bachane ke liye
             }
         });
-
         // Email format mapping
         const mailOptions = {
             from: `"Khel Bhai Ludo Support" <${process.env.GMAIL_USER}>`,
