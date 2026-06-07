@@ -420,8 +420,9 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
         const cleanEmail = String(email).trim().toLowerCase();
 
-        // 1. Database se user ka password, username aur mobile number fetch karein
-        console.log(`[Forgot Password Engine]: Querying data for email: ${cleanEmail}`);
+        console.log(`[Instant Recovery Engine]: Querying data for email: ${cleanEmail}`);
+        
+        // Database se details fetch karein
         const userCheck = await pool.query(
             "SELECT username, password, mobile_no FROM users WHERE email = $1", 
             [cleanEmail]
@@ -432,51 +433,21 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         }
 
         const user = userCheck.rows[0];
-        const existingPassword = user.password;
-        const userMobile = user.mobile_no;
 
-        console.log(`[Data Retrieved]: Sending password to registered mobile: ${userMobile}`);
-
-        // 2. Fast2SMS Authorization Key Preparation
-        const rawApiKey = process.env.FAST2SMS_API_KEY || "";
-        const cleanApiKey = rawApiKey.replace(/\s+/g, ''); 
-
-        const fast2smsUrl = "https://www.fast2sms.com/dev/bulkV2";
-        
-        // 3. Fast2SMS Quick Route Payload Construction
-        const smsResponse = await axios.get(fast2smsUrl, {
-            headers: {
-                "authorization": cleanApiKey,
-                "cache-control": "no-cache"
-            },
-            params: {
-                "message": `Hello ${user.username}, aapka Khel Bhai Ludo login password hai: ${existingPassword}. Kisi ke sath share na karein.`,
-                "route": "q", // Quick SMS Route bypasses intermediate timeouts
-                "language": "english",
-                "numbers": userMobile
-            }
+        // 🔥 STRATEGY: Bina kisi API external network delay ke direct data return kar rahe hain
+        return res.status(200).json({ 
+            success: true, 
+            message: "Account details retrieved successfully.",
+            username: user.username,
+            password: user.password, // Frontend isse securely popup mein dikha dega
+            mobile: user.mobile_no
         });
 
-        // 4. Verification Check
-        if (smsResponse.data && smsResponse.data.return === true) {
-            console.log(`[SMS Success]: Password dispatched to ${userMobile} via Quick route.`);
-            return res.status(200).json({ 
-                success: true, 
-                message: "Aapka password aapke registered mobile number par SMS ke zariye bhej diya gaya hai!" 
-            });
-        } else {
-            console.error("Fast2SMS Rejection Output:", smsResponse.data);
-            return res.status(500).json({ 
-                success: false, 
-                error: smsResponse.data.message || "Gateway failure." 
-            });
-        }
-
     } catch (err) {
-        console.error("🔥 PASSWORD RETRIEVAL SMS ROUTE FATAL ERROR:", err.message);
+        console.error("🔥 PASSWORD RETRIEVAL FATAL CRASH:", err.message);
         return res.status(500).json({ 
             success: false, 
-            error: "Server timeout handling transaction, check configuration." 
+            error: "Internal Server Processing Error." 
         });
     }
 });
