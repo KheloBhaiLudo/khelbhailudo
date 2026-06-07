@@ -141,7 +141,7 @@ async function submitForgotPassword() {
     if(!email) return alert("Kripya apni Email Address daalein!");
 
     btn.disabled = true;
-    btn.innerText = "Sending Password...";
+    btn.innerText = "Processing Request...";
 
     try {
         const response = await fetch(`${API_BASE}/auth/forgot-password`, {
@@ -153,7 +153,8 @@ async function submitForgotPassword() {
         const data = await response.json();
 
         if (data.success) {
-            alert("📩 SUCCESS!\nAapke registered Email ID par default login password bhej diya gaya hai. Inbox check karein.");
+            // 🔥 UPDATED FEEDBACK ALERT: Informs user that the credentials are hit on SMS
+            alert("📩 SUCCESS!\nAapka password aapke registered mobile number par SMS ke zariye bhej diya gaya hai. Kripya apna Message Box check karein.");
             toggleModal('forgotModal', false);
             document.getElementById('forgotEmail').value = '';
         } else {
