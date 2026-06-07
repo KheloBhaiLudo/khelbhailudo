@@ -17,7 +17,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^8.0.10",
     "pg": "^8.20.0",
     "razorpay": "^2.9.6",
     "sib-api-v3-sdk": "^8.5.0"
