@@ -52,32 +52,40 @@
     <div class="link-text" onclick="toggleModal('regModal', true)">New User? Register Here</div>
 </div>
 
-<!-- 📩 SECURE PASSWORD RECOVERY POPUP INTERFACE -->
+<!-- 📩 SECURE TWO-STEP PASSWORD RECOVERY POPUP -->
 <div id="forgotModal" class="modal">
     <div class="modal-content" style="max-width: 400px; text-align: center;">
-        <h3 style="color: var(--gold); margin-top:0;">Password Recovery</h3>
+        <h3 style="color: var(--gold); margin-top:0;">Account Verification</h3>
         
-        <!-- Input Form Section -->
+        <!-- Step 1: Email Input Form -->
         <div id="forgotInputSection">
-            <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalein, aapka password instantly screen par dikh jayega.</p>
+            <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalkar account verify karein.</p>
             <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
-            <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Retrieve Password</button>
+            <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Verify Email</button>
         </div>
 
-        <!-- Dynamic Success Reveal Section (Initially Hidden) -->
-        <div id="forgotResultSection" style="display: none; background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid var(--primary); margin-top: 15px;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Login Password Hai:</span>
-            <b id="revealedPassword" style="font-size: 24px; color: var(--gold); letter-spacing: 1px;">XXXXXX</b>
-            <p style="font-size: 12px; color: #cbd5e1; margin-top: 10px; text-align: left;">
-                👤 <b>Username:</b> <span id="revealedUser">--</span><br>
-                📱 <b>Mobile No:</b> <span id="revealedMobile">--</span>
+        <!-- Step 2: Mobile Security Challenge (Initially Hidden) -->
+        <div id="forgotMobileChallengeSection" style="display: none; margin-top: 15px;">
+            <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 10px;">
+                Hi <b id="challengeUser" style="color: var(--primary);">--</b>, security ke liye registered mobile number <b id="challengeMobile" style="color: var(--gold);">******XXXX</b> ko verify karein.
             </p>
+            <input type="number" id="forgotVerifyMobile" placeholder="Enter full 10-digit Mobile No.">
+            <button id="forgotVerifyMobileBtn" style="background: var(--green);" onclick="verifyMobileAndReveal()">Verify & Reveal Password</button>
+        </div>
+
+        <!-- Step 3: Final Password Reveal (Initially Hidden) -->
+        <div id="forgotResultSection" style="display: none; background: #0f172a; padding: 15px; border-radius: 10px; border: 2px solid var(--green); margin-top: 15px;">
+            <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px;">🎉 Verification Successful! Aapka Password Hai:</span>
+            <b id="revealedPassword" style="font-size: 26px; color: var(--gold); letter-spacing: 1px;">XXXXXX</b>
         </div>
 
         <button style="background:#444; margin-top:15px; width: 100%;" onclick="closeForgotModal()">Close</button>
     </div>
 </div>
 
+
+
+    
 <div id="regModal" class="modal">
     <div class="modal-content">
         <h3>Create New Account</h3>
