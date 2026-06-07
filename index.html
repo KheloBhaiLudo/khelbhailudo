@@ -33,19 +33,34 @@
 <div class="app-container" id="loginPage">
     <div class="logo">Khel Bhai Ludo</div>
     
+    <!-- 🔥 FIXED FLOW: PASSWORD BASED SECURE LOGIN INTERFACE -->
     <div id="mobileSection">
         <input type="number" id="loginMobile" placeholder="Enter Mobile Number" maxlength="10">
-        <button id="otpReqBtn" onclick="requestFast2SMS_OTP()">Send OTP</button>
+        <input type="password" id="loginPassword" placeholder="Enter Password">
+        <button id="loginWithPassBtn" onclick="loginWithPassword()">Login</button>
+        <div class="link-text" onclick="toggleModal('forgotModal', true)" style="margin-top: 15px; font-size: 13px; color: #aaa;">Forgot Password?</div>
     </div>
 
+    <!-- Hidden fallback trace interface keeping old setup alive -->
     <div id="otpSection" style="display: none;">
         <p style="color: var(--gold); font-size: 14px;">OTP aapke mobile par bhej diya gaya hai.</p>
         <input type="number" id="loginOTP" placeholder="Enter 4-Digit OTP" maxlength="4">
-        <button id="verifyBtn" onclick="verifyFast2SMS_Login()">Login</button>
+        <button id="verifyBtn" onclick="verifyFast2SMS_Login()">Login via OTP</button>
         <div class="link-text" onclick="location.reload()" style="margin-top: 10px; color: #aaa;">Back to Mobile</div>
     </div>
 
     <div class="link-text" onclick="toggleModal('regModal', true)">New User? Register Here</div>
+</div>
+
+<!-- 📩 DYNAMIC FORGOT PASSWORD EMAIL INPUT MODAL -->
+<div id="forgotModal" class="modal">
+    <div class="modal-content">
+        <h3>Recover Account Password</h3>
+        <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Registered Email Address daalein, aapki mail par temporary password bhej diya jayega.</p>
+        <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
+        <button id="forgotSubmitBtn" onclick="submitForgotPassword()">Send Default Password</button>
+        <button style="background:#444; margin-top:10px;" onclick="toggleModal('forgotModal', false)">Cancel</button>
+    </div>
 </div>
 
 <div id="regModal" class="modal">
@@ -82,7 +97,78 @@
         }
     });
 
-// 1. FAST2SMS REQUEST OTP (LIVE SMS MODE)
+// 🔥 NEW CLIENT CONTROLLER: PASSWORD VALIDATION BASED DIRECT ACCESS
+async function loginWithPassword() {
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    const btn = document.getElementById('loginWithPassBtn');
+
+    if(!mobile || !password) return alert("Kripya Mobile Number aur Password dono daalein!");
+    if(mobile.length < 10) return alert("Sahi 10-digit mobile number daalein!");
+
+    btn.disabled = true;
+    btn.innerText = "Logging in...";
+
+    try {
+        const response = await fetch(`${API_BASE}/auth/login-with-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            localStorage.setItem('userId', data.userId);
+            window.location.href = data.termsAccepted ? "dashboard.html" : "term.html";
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Server validation interaction failure.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Login";
+    }
+}
+
+// 🔥 NEW CLIENT CONTROLLER: RECOVER DEFAULT CREDS VIA NODEMAILER ROUTE
+async function submitForgotPassword() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    const btn = document.getElementById('forgotSubmitBtn');
+
+    if(!email) return alert("Kripya apni Email Address daalein!");
+
+    btn.disabled = true;
+    btn.innerText = "Sending Password...";
+
+    try {
+        const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert("📩 SUCCESS!\nAapke registered Email ID par default login password bhej diya gaya hai. Inbox check karein.");
+            toggleModal('forgotModal', false);
+            document.getElementById('forgotEmail').value = '';
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Failed to compile cloud recovery routing.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Send Default Password";
+    }
+}
+
+// 1. FAST2SMS REQUEST OTP (LIVE SMS MODE) - Retained for system integrity
 async function requestFast2SMS_OTP() {
     const mobile = document.getElementById('loginMobile').value.trim();
     const btn = document.getElementById('otpReqBtn');
@@ -102,10 +188,7 @@ async function requestFast2SMS_OTP() {
         const data = await response.json();
 
         if (data.success) {
-            // 🔥 BYPASS ALERT REMOVED: Ab screen par koi OTP nahi dikhega, direct phone par SMS aayega
             alert("📩 OTP aapke mobile number par safely bhej diya gaya hai. Kripya check karein.");
-            
-            // UI elements switch karein
             document.getElementById('mobileSection').style.display = 'none';
             document.getElementById('otpSection').style.display = 'block';
         } else {
@@ -121,7 +204,7 @@ async function requestFast2SMS_OTP() {
     }
 }
 
-// 2. FAST2SMS VERIFY & DIRECT PAYLOAD LOGIN
+// 2. FAST2SMS VERIFY & DIRECT PAYLOAD LOGIN - Retained for system integrity
 async function verifyFast2SMS_Login() {
     const otp = document.getElementById('loginOTP').value.trim();
     const mobile = document.getElementById('loginMobile').value.trim();
@@ -133,7 +216,6 @@ async function verifyFast2SMS_Login() {
     btn.innerText = "Verifying...";
 
     try {
-        // Correctly hitting the unique combined verification endpoint
         const response = await fetch(`${API_BASE}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -143,7 +225,6 @@ async function verifyFast2SMS_Login() {
         const data = await response.json();
 
         if(data.success) {
-            // Storage configuration and direct redirection map
             localStorage.setItem('userId', data.userId);
             window.location.href = data.termsAccepted ? "dashboard.html" : "term.html";
         } else {
@@ -173,22 +254,10 @@ async function verifyFast2SMS_Login() {
             return alert("Kripya saari details bharein!");
         }
 
-        const formData = new FormData();
-        formData.append('fullName', fullName);
-        formData.append('email', email);
-        formData.append('mobile', mobile);
-        formData.append('username', username);
-        formData.append('password', password);
-        
-        if(globalReferBy) {
-            formData.append('referred_by', globalReferBy);
-        }
-
-try {
+        try {
             btn.disabled = true;
             btn.innerText = "Registering...";
 
-            // 🔥 FIXED FLOW: Sending pure JSON structure to match backend parser
             const response = await fetch(`${API_BASE}/register`, {
                 method: 'POST',
                 headers: { 
