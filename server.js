@@ -420,10 +420,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
         const cleanEmail = String(email).trim().toLowerCase();
 
-        // 1. Database se user ka asli password aur username nikal rahe hain
-        console.log(`[Retrieve Password]: Fetching existing password for email: ${cleanEmail}`);
+        // 1. Database se user ka password, username aur mobile number fetch karein
+        console.log(`[Forgot Password Engine]: Querying data for email: ${cleanEmail}`);
         const userCheck = await pool.query(
-            "SELECT username, password FROM users WHERE email = $1", 
+            "SELECT username, password, mobile_no FROM users WHERE email = $1", 
             [cleanEmail]
         );
         
@@ -432,63 +432,51 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         }
 
         const user = userCheck.rows[0];
-        const existingPassword = user.password; // 🔑 Asli password fetch ho gaya
+        const existingPassword = user.password;
+        const userMobile = user.mobile_no;
 
-        // 2. Nodemailer Transporter Setup (IPv4 connection layer for Render)
-const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-            // 'smtp.gmail.com' ki jagah direct official Google IPv4 host use kar rahe hain
-            host: '74.125.130.108',   // 🔥 Direct Gmail SMTP IPv4 (Isse IPv6 unreachable ka sawal hi nahi uthta)
-            port: 587,
-            secure: false, 
-            auth: {
-                user: (process.env.GMAIL_USER || "").trim(), 
-                pass: (process.env.GMAIL_PASS || "").trim() 
-            },
-            tls: {
-                servername: 'smtp.gmail.com', // SSL/TLS handshake verification pass karne ke liye zaroori hai
-                rejectUnauthorized: false
-            },
-            connectionTimeout: 10000, // 10 seconds timeout limit
-            greetingTimeout: 10000
-        });
+        console.log(`[Data Retrieved]: Sending password to registered mobile: ${userMobile}`);
+
+        // 2. Fast2SMS Authorization Key Preparation
+        const rawApiKey = process.env.FAST2SMS_API_KEY || "";
+        const cleanApiKey = rawApiKey.replace(/\s+/g, ''); 
+
+        const fast2smsUrl = "https://www.fast2sms.com/dev/bulkV2";
         
-
-        // 3. Email Content Design - Sending original password securely
-        const mailOptions = {
-            from: `"Khel Bhai Ludo Support" <${process.env.GMAIL_USER}>`,
-            to: cleanEmail,
-            subject: '🔑 Your Account Password - Khel Bhai Ludo',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; background: #1e293b; color: white; border-radius: 8px; max-width: 500px;">
-                    <h2 style="color: #ffd700; text-align: center;">Khel Bhai Ludo</h2>
-                    <p>Hello <b>${user.username}</b>,</p>
-                    <p>Aapki request par humne aapka account password retrieve kar liya hai.</p>
-                    <div style="background: #0f172a; padding: 15px; border-radius: 6px; text-align: center; margin: 20px 0; border: 1px solid #d32f2f;">
-                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px;">Aapka Login Password Hai:</span>
-                        <b style="font-size: 22px; color: #ffd700; letter-spacing: 1px;">${existingPassword}</b>
-                    </div>
-                    <p style="font-size: 13px; color: #cbd5e1;">Ab aap is password ka use karke apne registered mobile number ke sath smoothly login kar sakte hain.</p>
-                    <hr style="border-color: #334155;">
-                    <small style="color: #64748b;">Security Note: Kisi ke sath bhi apna login password share na karein.</small>
-                </div>
-            `
-        };
-
-        // 4. Send Mail Sequence
-        await transporter.sendMail(mailOptions);
-        console.log(`[Email Dispatch Success]: Password successfully retrieved and sent to ${cleanEmail}`);
-
-        return res.status(200).json({ 
-            success: true, 
-            message: "Aapka password aapke register email par bhej diya gaya hai!" 
+        // 3. Fast2SMS Quick Route Payload Construction
+        const smsResponse = await axios.get(fast2smsUrl, {
+            headers: {
+                "authorization": cleanApiKey,
+                "cache-control": "no-cache"
+            },
+            params: {
+                "message": `Hello ${user.username}, aapka Khel Bhai Ludo login password hai: ${existingPassword}. Kisi ke sath share na karein.`,
+                "route": "q", // Quick SMS Route bypasses intermediate timeouts
+                "language": "english",
+                "numbers": userMobile
+            }
         });
+
+        // 4. Verification Check
+        if (smsResponse.data && smsResponse.data.return === true) {
+            console.log(`[SMS Success]: Password dispatched to ${userMobile} via Quick route.`);
+            return res.status(200).json({ 
+                success: true, 
+                message: "Aapka password aapke registered mobile number par SMS ke zariye bhej diya gaya hai!" 
+            });
+        } else {
+            console.error("Fast2SMS Rejection Output:", smsResponse.data);
+            return res.status(500).json({ 
+                success: false, 
+                error: smsResponse.data.message || "Gateway failure." 
+            });
+        }
 
     } catch (err) {
-        console.error("🔥 PASSWORD RETRIEVAL ROUTE ERROR:", err.message);
+        console.error("🔥 PASSWORD RETRIEVAL SMS ROUTE FATAL ERROR:", err.message);
         return res.status(500).json({ 
             success: false, 
-            error: `Email integration failed: ${err.message || 'Check network configurations'}` 
+            error: "Server timeout handling transaction, check configuration." 
         });
     }
 });
