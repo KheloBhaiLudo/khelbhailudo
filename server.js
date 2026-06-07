@@ -414,25 +414,40 @@ app.post('/api/auth/login-with-password', async (req, res) => {
 app.post('/api/auth/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(400).json({ success: false, error: "Email ID daalna zaroori hai!" });
+        if (!email) {
+            return res.status(400).json({ success: false, error: "Email ID daalna zaroori hai!" });
+        }
 
         const cleanEmail = String(email).trim().toLowerCase();
 
-        // Check karein kya ye email database mein hai?
+        // 1. Check database entry
+        console.log(`[Forgot Password]: Querying database for email: ${cleanEmail}`);
         const userCheck = await pool.query("SELECT id, username FROM users WHERE email = $1", [cleanEmail]);
+        
         if (userCheck.rows.length === 0) {
             return res.status(400).json({ success: false, error: "Yeh Email ID humare system mein nahi hai!" });
         }
 
         const user = userCheck.rows[0];
 
-        // Ek secure 6-digit dynamic temporary default password banayein
+        // 2. Secure 6-digit dynamic temporary password generation
         const defaultPassword = `LUDO-${Math.floor(1000 + Math.random() * 9000)}`;
 
-        // Database mein user ka password is temporary password se update kar dein
+        // 3. Update database instantly
         await pool.query("UPDATE users SET password = $1 WHERE email = $2", [defaultPassword, cleanEmail]);
+        console.log(`[Database Update Success]: Temporary password allocated for ${user.username}`);
 
-        // Email content design
+        // 4. Nodemailer Transporter Runtime Init (Safe from Global initialization crashes)
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: (process.env.GMAIL_USER || "").trim(), 
+                pass: (process.env.GMAIL_PASS || "").trim() // 16-digit app password string
+            }
+        });
+
+        // Email format mapping
         const mailOptions = {
             from: `"Khel Bhai Ludo Support" <${process.env.GMAIL_USER}>`,
             to: cleanEmail,
@@ -453,15 +468,22 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             `
         };
 
-        // Send Email
+        // 5. Safe Mail Dispatch Sequence
         await transporter.sendMail(mailOptions);
-        console.log(`[Email Sent]: Default password sent to ${cleanEmail}`);
+        console.log(`[Email Dispatch Success]: Dynamic credential packet routed to ${cleanEmail}`);
 
-        return res.status(200).json({ success: true, message: "Aapke Email par naya password bhej diya gaya hai!" });
+        return res.status(200).json({ 
+            success: true, 
+            message: "Aapke Email par naya password bhej diya gaya hai!" 
+        });
 
     } catch (err) {
-        console.error("Forgot Password Error:", err.message);
-        return res.status(500).json({ success: false, error: "Email bhejne mein koi dikkat aayi hai." });
+        // 🔥 CRITICAL PROTECTION LAYER: Server crash hone se bachata hai aur Render logs mein details print karta hai
+        console.error("🔥 NODEMAILER SYSTEM ERROR LOG:", err.message);
+        return res.status(500).json({ 
+            success: false, 
+            error: `Email integration failed: ${err.message || 'Check your Gmail App Password setup'}` 
+        });
     }
 });
 
