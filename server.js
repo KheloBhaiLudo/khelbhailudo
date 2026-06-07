@@ -22,7 +22,6 @@ const pool = require('./db');
 
 // FIXED: Agar db.js ke andar 'supabase' exported hai toh thik hai, nahi toh collision se bachne ke liye standard check laga diya hai
 const supabaseClientInstance = pool.supabase || global.supabase;
-const nodemailer = require('nodemailer');
 
 // 1. Gmail Transporter Setup
 // (Render ke Environment Variables mein GMAIL_USER aur GMAIL_PASS daal dena)
