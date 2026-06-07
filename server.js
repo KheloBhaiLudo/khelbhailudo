@@ -435,20 +435,24 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         const existingPassword = user.password; // 🔑 Asli password fetch ho gaya
 
         // 2. Nodemailer Transporter Setup (IPv4 connection layer for Render)
-        const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
+            // 'smtp.gmail.com' ki jagah direct official Google IPv4 host use kar rahe hain
+            host: '74.125.130.108',   // 🔥 Direct Gmail SMTP IPv4 (Isse IPv6 unreachable ka sawal hi nahi uthta)
             port: 587,
             secure: false, 
-            family: 4, // Force IPv4 network to prevent connection timeouts
             auth: {
                 user: (process.env.GMAIL_USER || "").trim(), 
                 pass: (process.env.GMAIL_PASS || "").trim() 
             },
             tls: {
+                servername: 'smtp.gmail.com', // SSL/TLS handshake verification pass karne ke liye zaroori hai
                 rejectUnauthorized: false
-            }
+            },
+            connectionTimeout: 10000, // 10 seconds timeout limit
+            greetingTimeout: 10000
         });
+        
 
         // 3. Email Content Design - Sending original password securely
         const mailOptions = {
